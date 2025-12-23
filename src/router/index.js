@@ -1,15 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// import MainLayout from '@/layouts/MainLayout.vue'
+// import MainLayout from '@/layouts/MainLayout.vue'  
 import HomeView from '@/views/HomeView.vue'
-// import CustomerView from '@/views/CustomerView.vue'
 import MainLayout from '@/layout/MainLayout.vue'
-import Customer from '@/views/Customer.vue'
-import Category from '@/views/Category.vue'
-// import Barnch from '@/views/Barnch.vue'
+
 import Invoice from '@/views/Invoice.vue'
 import Produce from '@/views/Produce.vue'
 import BranchView from '@/views/BranchView.vue'
 import UserView from '@/views/UserView.vue'
+import CategoryView from '@/views/CategoryView.vue'
+import CustomerView from '@/views/CustomerView.vue'
 
 const routes = [
   {
@@ -23,11 +22,11 @@ const routes = [
       },
       {
         path: 'customer',
-        component: Customer
+        component: CustomerView
       },
       {
         path: 'category',
-        component: Category
+        component: CategoryView
       },
       {
         path: 'produce',

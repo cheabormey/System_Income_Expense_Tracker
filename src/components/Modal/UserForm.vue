@@ -67,17 +67,17 @@
                 <!-- Form Fields -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                    <label class="label">Username <span class="rq-label"></span></label>
                     <input v-model="form.username" class="input" placeholder="Username" required />
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <label class="label">Full Name</label>
                     <input v-model="form.fullName" class="input" placeholder="Full Name" />
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                    <label class="label">Gender</label>
                     <select v-model="form.gender" class="input">
                       <option value="">Select Gender</option>
                       <option value="Male">Male</option>
@@ -87,17 +87,17 @@
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <label class="label">Phone Number</label>
                     <input v-model="form.phoneNumber" class="input" placeholder="Phone Number" />
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <label class="label">Address</label>
                     <textarea v-model="form.address" class="input" rows="2" placeholder="Address"></textarea>
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Main Role *</label>
+                    <label class="label">Main Role <span class="rq-label"></span></label>
                     <select v-model="form.mainRole" class="input" required>
                       <option value="">Select Role</option>
                       <option value="Admin">Admin</option>

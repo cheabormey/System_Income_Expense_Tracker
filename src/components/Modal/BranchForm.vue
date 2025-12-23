@@ -42,40 +42,40 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Branch Name *</label>
+                  <label class="label">Branch Name  <span class="rq-label"></span></label>
                   <input v-model="form.name" class="input" placeholder="Branch Name" required />
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Abbreviation *</label>
+                  <label class="label">Abbreviation <span class="rq-label"></span></label>
                   <input v-model="form.abbreviation" class="input" placeholder="Abbreviation" required />
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Director Name</label>
+                  <label class="label">Director Name</label>
                   <input v-model="form.directorName" class="input" placeholder="Director Name" />
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Contact</label>
+                  <label class="label">Contact</label>
                   <input v-model="form.contact" class="input" placeholder="Contact" />
                 </div>
 
                 <!-- Removed Email field -->
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <label class="label">Address</label>
                   <textarea v-model="form.address" class="input" rows="2" placeholder="Address"></textarea>
                 </div>
 
                 <!-- Invoice Settings -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Prefix</label>
+                    <label class="label">Invoice Prefix</label>
                     <input v-model="form.invoicePrefix" class="input" placeholder="e.g. INV-" />
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice ID Length</label>
+                    <label class="label">Invoice ID Length</label>
                     <input
                       v-model.number="form.invoiceIdLength"
                       type="number"
@@ -88,7 +88,7 @@
 
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label class="label">Description</label>
                   <textarea v-model="form.description" class="input" rows="3" placeholder="Description"></textarea>
                 </div>
 

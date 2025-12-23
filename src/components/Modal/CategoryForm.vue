@@ -42,12 +42,12 @@
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Category Name *</label>
+                  <label class="label">Category Name <span class="rq-label"></span></label>
                   <input v-model="form.name" class="input" placeholder="Category Name" required />
                 </div>
 
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label class="label">Description</label>
                   <textarea v-model="form.description" class="input" rows="3" placeholder="Description"></textarea>
                 </div>
 
