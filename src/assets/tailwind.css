@@ -3,3 +3,112 @@
 @tailwind components;
 
 @tailwind utilities;
+@layer components {
+
+  .btn-cancel {
+    @apply inline-block px-4 py-1.5 text-sm border rounded-lg border-[#f5b7b1]  text-[#e74c3c] bg-[#fadbd8] hover:border-red-400 hover:text-red-400 focus:outline-none;
+  }
+  .btn-add {
+    @apply inline-block  px-4 py-1.5 text-sm text-[#045B1B] bg-[#5B9717]/30 rounded-lg border border-[#82B215]/50 cursor-pointer focus:outline-none;
+  }
+
+
+
+
+  .btn-add-new {
+    @apply bg-gradient-to-r from-[#045B1B] to-[#5B9717]  rounded-lg  text-white py-2 px-2 hover:bg-[#045B1B]/80 focus:outline-none;
+  }
+  .btn {
+    @apply   px-4 py-2 text-sm border inline-block bg-[#056B20] rounded-lg text-white hover:bg-[#045B1B]/80 focus:outline-none;
+  }
+  .btn-submit {
+    @apply bg-[#5B9717] rounded-md  text-white px-4 py-1.5 text-sm  hover:bg-[#045B1B]/80 focus:outline-none;
+  }
+  .frozen {
+    @apply cursor-not-allowed opacity-50;
+  }
+  .active-pagination {
+    @apply block rounded-md  px-3 py-1.5 text-[#045B1B]/80 hover:bg-[#045B1B]/80 hover:text-default [&.active]:bg-[#045B1B] [&.active]:text-white;
+  }
+  .btn-pagination {
+    @apply border border-default px-6 py-1.5 hover:border-[#045B1B]/80 rounded-md hover:text-[#045B1B]/80 focus:outline-none;
+  }
+
+  /* .input {
+    @apply block w-full px-3 py-2 bg-[#f9faf5] border border-[#5B9717] rounded-lg focus:border-[#045B1B] [&.active]:border-[#045B1B] placeholder:text-[#5B9717]/50 placeholder:text-xs cursor-pointer focus:outline-none;
+  } */
+   .input{
+    @apply block w-full px-3 py-2  border border-[#d5d8dc] rounded-lg focus:border-[#808b96] [&.active]:border-[#d5d8dc] placeholder:text-[#abb2b9] placeholder:text-xs cursor-pointer focus:outline-none;
+   }
+  /* .input-toggle {
+    @apply mt-[0.6rem] h-4 w-10 appearance-none rounded-[8px] border-2 bg-white before:pointer-events-none before:absolute before:h-5 before:w-5 before:rounded-full before:bg-transparent before:content-[''] after:absolute after:z-[2] after:-mt-[4px] after:h-5 after:w-5 after:rounded-full after:border-2 after:-ml-1 after:bg-white after:transition-[background-color_0.2s,transform_0.2s] after:content-[''] checked:border-2 checked:border-[#045B1B] checked:after:absolute checked:after:z-[2] checked:after:-mt-[4px] checked:after:ml-[19px] checked:after:h-5 checked:after:w-5 checked:after:rounded-full checked:after:border-2 checked:after:bg-primary checked:after:transition-[background-color_0.2s,transform_0.2s] checked:after:content-[''] hover:cursor-pointer focus:outline-none focus:ring-0 focus:before:opacity-[0.12] focus:after:absolute focus:after:z-[1] focus:after:block focus:after:h-5 focus:after:w-5 focus:after:rounded-full focus:after:content-[''] checked:focus:border-2 checked:focus:border-[#045B1B] checked:focus:before:ml-[19px];
+  } */
+  .close{
+    @apply rounded-full text-[#e74c3c] bg-[#e74c3c]/25 backdrop-blur-lg border border-[#ec7063] shadow-md h-6 w-6 hover:bg-white/30 active:scale-95 transition-all duration-200 ease-in-out;
+  }
+
+
+  .rq-label {
+    @apply block font-medium after:content-['*'] after:text-red-600 after:font-semibold hover:cursor-pointer pl-2;
+  }
+  .label{
+    @apply block text-xs sm:text-sm font-medium text-[#045B1B] flex items-center mb-2;
+  }
+  .quick-cancel {
+    @apply w-8 rounded-full p-1  cursor-pointer border border-transparent hover:border-red-600 hover:text-red-600;
+  }
+  .Select{
+    @apply block w-full text-red-600 bg-[#f9faf5] border border-[#5B9717] rounded-lg focus:border-[#045B1B] [&.active]:border-[#045B1B] placeholder:text-[#82B215]/40 placeholder:text-sm cursor-pointer focus:outline-none;
+  }
+
+  .Dropdown {
+    font-family: "Noto Sans Khmer", sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    background-color: #ffffff;
+    border: 1px solid #d8dfe8;
+    border-radius: 8px;
+    padding: 8px;
+    height: 40px;
+    outline: none;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+    color: grey;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1); /* Added shadow */
+}
+
+  .custom-select {
+    width: 100%;
+    background-color: #f9faf5;
+    border: 1px solid #5B9717;
+    border-radius: 8px;  
+    font-family: "Noto Serif Khmer", sans-serif;
+    color: #045B1B;
+    padding-right: 2.5rem; /* pr-10 */
+    outline: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    padding: 8px; /* p-3 */
+  }
+  
+  .custom-select::placeholder {
+    color: #5B9717;
+  }
+  
+  .custom-select:focus {
+    border-color: #82B215;
+    box-shadow: 0 0 0 2px #82B215;
+    outline: none;
+  }
+  
+  @media (min-width: 640px) {
+    .custom-select {
+      padding: 8px; /* sm:p-3 */
+    }
+  }
+  
+
+}
+

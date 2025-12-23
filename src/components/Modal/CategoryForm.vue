@@ -1,64 +1,152 @@
 <template>
-  <Dialog :visible="open" modal header="Category Form" class="w-full max-w-2xl" @hide="$emit('close')">
-    <div class="flex flex-col gap-4">
-      <InputText v-model="form.name" placeholder="Category Name" />
-      <InputText v-model="form.description" placeholder="Description" />
+  <TransitionRoot as="template" :show="open">
+    <Dialog as="div" class="relative z-50" @close="handleClose">
+      <TransitionChild
+        as="template"
+        enter="ease-out duration-300"
+        enter-from="opacity-0"
+        enter-to="opacity-100"
+        leave="ease-in duration-200"
+        leave-from="opacity-100"
+        leave-to="opacity-0"
+      >
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+      </TransitionChild>
 
-      <div class="flex justify-end gap-3 mt-4">
-        <Button label="Cancel" class="p-button-outlined" @click="$emit('close')" />
-        <Button :label="isEdit ? 'Update' : 'Add'" class="p-button-primary" @click="submit" />
+      <div class="fixed inset-0 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center px-4 py-6">
+          <TransitionChild
+            as="template"
+            enter="ease-out duration-300"
+            enter-from="opacity-0 scale-95"
+            enter-to="opacity-100 scale-100"
+            leave="ease-in duration-200"
+            leave-from="opacity-100 scale-100"
+            leave-to="opacity-0 scale-95"
+          >
+            <DialogPanel class="w-full max-w-lg bg-white rounded-2xl shadow-xl border-2 border-[#82B215]">
+              <!-- Header -->
+              <div class="flex items-center justify-between p-5 border-b">
+                <h3 class="text-xl font-semibold text-[#045B1B]">
+                  {{ isEdit ? 'Edit Category' : 'Add New Category' }}
+                </h3>
+                <button @click="handleClose" class="text-gray-500 hover:text-gray-700">
+                  ✖
+                </button>
+              </div>
+
+              <!-- Form -->
+              <form class="p-6 space-y-5" @submit.prevent="handleSubmit">
+                <div v-if="errorMessage" class="bg-red-50 text-red-700 p-3 rounded border border-red-200">
+                  {{ errorMessage }}
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Category Name *</label>
+                  <input v-model="form.name" class="input" placeholder="Category Name" required />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea v-model="form.description" class="input" rows="3" placeholder="Description"></textarea>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex justify-end gap-4 pt-6">
+                  <button
+                    type="button"
+                    class="px-5 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    @click="handleClose"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    class="px-5 py-2 bg-[#82B215] text-white rounded-md hover:bg-[#6e9a12] transition"
+                  >
+                    {{ isEdit ? 'Update' : 'Add' }}
+                  </button>
+                </div>
+              </form>
+            </DialogPanel>
+          </TransitionChild>
+        </div>
       </div>
-    </div>
-  </Dialog>
+    </Dialog>
+  </TransitionRoot>
 </template>
 
 <script>
-import { ref, watch } from 'vue'
-import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
-import Button from 'primevue/button'
+import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue';
 
 export default {
-  components: { Dialog, InputText, Button },
+  name: 'CategoryFormModal',
+  components: { Dialog, DialogPanel, TransitionChild, TransitionRoot },
 
   props: {
-    open: Boolean,
-    data: Object,
-    isEdit: Boolean
+    open: { type: Boolean, default: false },
+    isEdit: { type: Boolean, default: false },
+    initialData: { type: Object, default: null },
   },
 
-  setup(props, { emit }) {
-    const form = ref({
-      name: '',
-      description: ''
-    })
+  emits: ['close', 'save'],
 
-    watch(
-      () => props.data,
-      (val) => {
-        if (val) form.value = { ...val }
-        else form.value = { name: '', description: '' }
+  data() {
+    return {
+      form: {
+        id: null,
+        name: '',
+        description: '',
       },
-      { immediate: true }
-    )
+      errorMessage: '',
+    };
+  },
 
-    const submit = () => {
-      if (!form.value.name) {
-        alert('Name is required')
-        return
+  watch: {
+    open: {
+      immediate: true,
+      handler(newVal) {
+        if (newVal && this.initialData) {
+          this.form = { ...this.initialData };
+        } else if (newVal) {
+          this.resetForm();
+        }
+      },
+    },
+  },
+
+  methods: {
+    resetForm() {
+      this.form = {
+        id: null,
+        name: '',
+        description: '',
+      };
+      this.errorMessage = '';
+    },
+
+    handleClose() {
+      this.$emit('close');
+      this.resetForm();
+    },
+
+    handleSubmit() {
+      if (!this.form.name) {
+        this.errorMessage = 'Category Name is required.';
+        return;
       }
-      emit('save', { ...form.value, id: props.data?.id })
-      emit('close')
-    }
 
-    return { form, submit }
-  }
-}
+      this.$emit('save', { ...this.form });
+
+      alert(this.isEdit ? 'Category updated successfully!' : 'Category added successfully!');
+      this.handleClose();
+    },
+  },
+};
 </script>
 
 <style scoped>
-:deep(.p-button-primary) {
-  background-color: #3b82f6;
-  border: none;
+.input {
+  @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#82B215] focus:border-[#82B215];
 }
 </style>

@@ -1,7 +1,6 @@
 <template>
   <TransitionRoot as="template" :show="open">
-    <Dialog as="div" class="relative z-40" @close="handleClose">
-      <!-- Overlay -->
+    <Dialog as="div" class="relative z-50" @close="handleClose">
       <TransitionChild
         as="template"
         enter="ease-out duration-300"
@@ -11,10 +10,9 @@
         leave-from="opacity-100"
         leave-to="opacity-0"
       >
-        <div class="fixed inset-0 bg-black/40 backdrop-blur-sm" />
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" />
       </TransitionChild>
 
-      <!-- Modal -->
       <div class="fixed inset-0 overflow-y-auto">
         <div class="flex min-h-full items-center justify-center px-4 py-6">
           <TransitionChild
@@ -26,58 +24,88 @@
             leave-from="opacity-100 scale-100"
             leave-to="opacity-0 scale-95"
           >
-            <DialogPanel
-              class="w-full max-w-2xl bg-white rounded-3xl border-2 border-[#82B215]"
-            >
+            <DialogPanel class="w-full max-w-2xl bg-white rounded-2xl shadow-xl border-2 border-[#82B215]">
               <!-- Header -->
-              <div class="flex items-center justify-between p-4 border-b">
-                <h3 class="text-lg font-semibold text-[#045B1B]">
-                  {{ isEditDoc ? 'Edit Branch' : 'Add New Branch' }}
+              <div class="flex items-center justify-between p-5 border-b">
+                <h3 class="text-xl font-semibold text-[#045B1B]">
+                  {{ isEdit ? 'Edit Branch' : 'Add New Branch' }}
                 </h3>
-                <button @click="handleClose">✖</button>
+                <button @click="handleClose" class="text-gray-500 hover:text-gray-700">
+                  ✖
+                </button>
               </div>
 
               <!-- Form -->
-              <form class="p-4 space-y-4" @submit.prevent="handleSubmit">
-                <div v-if="errorMessage" class="bg-red-50 text-red-600 p-3 rounded">
+              <form class="p-6 space-y-5" @submit.prevent="handleSubmit">
+                <div v-if="errorMessage" class="bg-red-50 text-red-700 p-3 rounded border border-red-200">
                   {{ errorMessage }}
                 </div>
 
-                <input v-model="name" class="input" placeholder="Branch Name" required />
-                <input v-model="abbreviation" class="input" placeholder="Abbreviation" required />
-                <input v-model="directorName" class="input" placeholder="Director Name" required />
-                <input v-model="contact" class="input" placeholder="Contact" required />
-                <input v-model="email" class="input" placeholder="Email" type="email" />
-                <textarea v-model="address" class="input" placeholder="Address" rows="2" />
-
-                <!-- Static Map Placeholder -->
                 <div>
-                  <label class="label">Location (optional)</label>
-                  <div class="flex gap-2">
-                    <input v-model="latitude" class="input" placeholder="Latitude" readonly />
-                    <input v-model="longitude" class="input" placeholder="Longitude" readonly />
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Branch Name *</label>
+                  <input v-model="form.name" class="input" placeholder="Branch Name" required />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Abbreviation *</label>
+                  <input v-model="form.abbreviation" class="input" placeholder="Abbreviation" required />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Director Name</label>
+                  <input v-model="form.directorName" class="input" placeholder="Director Name" />
+                </div>
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Contact</label>
+                  <input v-model="form.contact" class="input" placeholder="Contact" />
+                </div>
+
+                <!-- Removed Email field -->
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <textarea v-model="form.address" class="input" rows="2" placeholder="Address"></textarea>
+                </div>
+
+                <!-- Invoice Settings -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Prefix</label>
+                    <input v-model="form.invoicePrefix" class="input" placeholder="e.g. INV-" />
                   </div>
-                  <div class="mt-2 h-40 bg-gray-100 rounded flex items-center justify-center text-gray-400">
-                    Map Placeholder (Static)
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Invoice ID Length</label>
+                    <input
+                      v-model.number="form.invoiceIdLength"
+                      type="number"
+                      min="1"
+                      class="input"
+                      placeholder="e.g. 6"
+                    />
                   </div>
                 </div>
 
-                <textarea v-model="description" class="input" placeholder="Description" rows="2" />
+
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea v-model="form.description" class="input" rows="3" placeholder="Description"></textarea>
+                </div>
 
                 <!-- Buttons -->
-                <div class="flex justify-end gap-3 pt-4">
+                <div class="flex justify-end gap-4 pt-6">
                   <button
                     type="button"
-                    class="px-4 py-2 border rounded"
+                    class="px-5 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                     @click="handleClose"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    class="px-4 py-2 bg-[#82B215] text-white rounded"
+                    class="px-5 py-2 bg-[#82B215] text-white rounded-md hover:bg-[#6e9a12] transition"
                   >
-                    {{ isEditDoc ? 'Update' : 'Add' }}
+                    {{ isEdit ? 'Update' : 'Add' }}
                   </button>
                 </div>
               </form>
@@ -90,97 +118,85 @@
 </template>
 
 <script>
-import {
-  Dialog,
-  DialogPanel,
-  TransitionChild,
-  TransitionRoot,
-} from "@headlessui/vue";
+import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue';
 
 export default {
-  name: "BranchFormModal",
-  components: {
-    Dialog,
-    DialogPanel,
-    TransitionChild,
-    TransitionRoot,
-  },
+  name: 'BranchFormModal',
+  components: { Dialog, DialogPanel, TransitionChild, TransitionRoot },
 
   props: {
-    open: {
-      type: Boolean,
-      default: false,
-    },
-    isEditDoc: {
-      type: Boolean,
-      default: false,
-    },
-    doc: {
-      type: Object,
-      default: null,
-    },
+    open: { type: Boolean, default: false },
+    isEdit: { type: Boolean, default: false },
+    initialData: { type: Object, default: null },
   },
+
+  emits: ['close', 'save'],
 
   data() {
     return {
-      name: "",
-      abbreviation: "",
-      directorName: "",
-      contact: "",
-      email: "",
-      address: "",
-      latitude: "",
-      longitude: "",
-      description: "",
-      errorMessage: "",
+      form: {
+        id: null,
+        name: '',
+        abbreviation: '',
+        directorName: '',
+        contact: '',
+        address: '',
+        // latitude: '',
+        // longitude: '',
+        description: '',
+        invoicePrefix: 'INV-',      // default
+        invoiceIdLength: 6,         // default
+      },
+      errorMessage: '',
     };
   },
 
   watch: {
-    doc: {
+    open: {
       immediate: true,
-      handler(val) {
-        if (val) {
-          this.name = val.name || "";
-          this.abbreviation = val.abbreviation || "";
-          this.directorName = val.directorName || "";
-          this.contact = val.contact || "";
-          this.email = val.email || "";
-          this.address = val.address || "";
-          this.latitude = val.latitude || "";
-          this.longitude = val.longitude || "";
-          this.description = val.description || "";
+      handler(newVal) {
+        if (newVal && this.initialData) {
+          this.form = { ...this.initialData };
+        } else if (newVal) {
+          this.resetForm();
         }
       },
     },
   },
 
   methods: {
+    resetForm() {
+      this.form = {
+        id: null,
+        name: '',
+        abbreviation: '',
+        directorName: '',
+        contact: '',
+        address: '',
+        // latitude: '',
+        // longitude: '',
+        description: '',
+        invoicePrefix: 'INV-',
+        invoiceIdLength: 6,
+      };
+      this.errorMessage = '';
+    },
+
     handleClose() {
-      this.$emit("onClose");
+      this.$emit('close');
+      this.resetForm();
     },
 
     handleSubmit() {
-      if (!this.name || !this.abbreviation) {
-        this.errorMessage = "Please fill required fields";
+      if (!this.form.name || !this.form.abbreviation) {
+        this.errorMessage = 'Branch Name and Abbreviation are required.';
         return;
       }
 
-      const payload = {
-        name: this.name,
-        abbreviation: this.abbreviation,
-        directorName: this.directorName,
-        contact: this.contact,
-        email: this.email,
-        address: this.address,
-        latitude: this.latitude,
-        longitude: this.longitude,
-        description: this.description,
-      };
+      // Emit the data back to parent
+      this.$emit('save', { ...this.form });
 
-      console.log("STATIC SUBMIT:", payload);
-
-      alert(this.isEditDoc ? "Branch Updated (Static)" : "Branch Added (Static)");
+      alert(this.isEdit ? 'Branch updated successfully!' : 'Branch added successfully!');
       this.handleClose();
     },
   },
@@ -189,12 +205,6 @@ export default {
 
 <style scoped>
 .input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-}
-.label {
-  font-weight: 600;
+  @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#82B215] focus:border-[#82B215];
 }
 </style>

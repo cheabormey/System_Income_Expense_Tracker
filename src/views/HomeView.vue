@@ -143,7 +143,8 @@ import {
   CubeIcon,
   ChartBarSquareIcon,
   BuildingOfficeIcon,     // Suggested for Branch
-  ReceiptPercentIcon      // Suggested for Invoice
+  ReceiptPercentIcon,      // Suggested for Invoice
+  UserIcon
 } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
@@ -169,11 +170,14 @@ const menuItems = ref([
 // Quick Actions - MUST match your router paths exactly!
 const gridMenus = ref([
   { label: 'Customers', to: '/customer', icon: UsersIcon, badge: 12 },
-  { label: 'Categories', to: '/category', icon: DocumentTextIcon, badge: 5 },
-  { label: 'Produce', to: '/produce', icon: CubeIcon, badge: 0 },
-  { label: 'Branch', to: '/branch', icon: BuildingOfficeIcon, badge: 0 }, // Note: path is 'barnch' as per your router
+  { label: 'Branch', to: '/branch', icon: BuildingOfficeIcon, badge: 0 },
+    { label: 'User', to: '/user', icon: UserIcon, badge: 0 },
   { label: 'Invoice', to: '/invoice', icon: ReceiptPercentIcon, badge: 3 },
+    { label: 'Categories', to: '/category', icon: DocumentTextIcon, badge: 5 },
+  { label: 'Produce', to: '/produce', icon: CubeIcon, badge: 0 },
   { label: 'Report', to: '/report', icon: ChartBarSquareIcon, badge: 0 },
+  
+
 ])
 
 // Dummy financial data

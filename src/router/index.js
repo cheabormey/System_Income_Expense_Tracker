@@ -9,6 +9,7 @@ import Category from '@/views/Category.vue'
 import Invoice from '@/views/Invoice.vue'
 import Produce from '@/views/Produce.vue'
 import BranchView from '@/views/BranchView.vue'
+import UserView from '@/views/UserView.vue'
 
 const routes = [
   {
@@ -43,6 +44,10 @@ const routes = [
             {
         path: 'branch',
         component: BranchView
+      },
+                  {
+        path: 'user',
+        component: UserView
       },
     ],
   },

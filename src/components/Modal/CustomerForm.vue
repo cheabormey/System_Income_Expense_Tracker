@@ -42,7 +42,7 @@
           :key="tier.id"
           class="bg-gray-50 p-3 rounded border"
         >
-          <p class="font-semibold text-sm mb-2">Tier {{ tier.id }}</p>
+          <p class="font-semibold text-sm mb-2">លេខ {{ tier.id }}</p>
 
           <Dropdown
             v-model="tier.percentage"

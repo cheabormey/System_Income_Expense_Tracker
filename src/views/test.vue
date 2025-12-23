@@ -1,165 +1,179 @@
 <template>
-  <div class="mx-5 font-noto">
-    <!-- Back Button -->
-    <button
-      @click="handleNavigateBack"
-      class="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition mb-4 inline-flex items-center"
-      aria-label="Go back"
-    >
-      <ChevronLeftIcon class="w-6 h-6" />
-      <span class="ml-1 text-sm">Back</span>
-    </button>
+  <TransitionRoot as="template" :show="open">
+    <Dialog as="div" class="relative z-50" @close="handleClose">
+      <TransitionChild
+        as="template"
+        enter="ease-out duration-300"
+        enter-from="opacity-0"
+        enter-to="opacity-100"
+        leave="ease-in duration-200"
+        leave-from="opacity-100"
+        leave-to="opacity-0"
+      >
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+      </TransitionChild>
 
-    <!-- Header -->
-    <div class="bg-white rounded-lg shadow-sm p-6 my-4 border-2 border-dashed border-[#5B9717]">
-      <h1 class="text-2xl md:text-3xl font-bold text-[#045B1B] mb-4">
-        Customers (អតិថិជន)
-      </h1>
-
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <input
-          v-model="searchText"
-          placeholder="Search by name or phone (ស្វែងរកតាមឈ្មោះ ឬ លេខទូរស័ព្ទ)"
-          class="border rounded-md px-4 py-2 w-full md:w-96 focus:outline-none focus:ring-2 focus:ring-[#5B9717]"
-        />
-
-        <button
-          class="bg-[#045B1B] hover:bg-[#045B1B]/90 text-white px-6 py-2 rounded-md transition flex items-center gap-2"
-          @click="openAddForm"
-        >
-          <span>➕ Add New Customer</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Customer Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden border">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-[#045B1B] text-white">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ID</th>
-            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Name (ឈ្មោះ)</th>
-            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Phone</th>
-            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Address</th>
-            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Categories</th>
-            <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider">Action</th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <tr
-            v-for="(customer, index) in filteredCustomers"
-            :key="customer.id"
-            :class="index % 2 === 0 ? 'bg-white' : 'bg-[#c6f5d3]'"
+      <div class="fixed inset-0 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center px-4 py-6">
+          <TransitionChild
+            as="template"
+            enter="ease-out duration-300"
+            enter-from="opacity-0 scale-95"
+            enter-to="opacity-100 scale-100"
+            leave="ease-in duration-200"
+            leave-from="opacity-100 scale-100"
+            leave-to="opacity-0 scale-95"
           >
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ customer.id }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="font-medium text-gray-900">{{ customer.name }}</div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-gray-700">{{ customer.phone }}</td>
-            <td class="px-6 py-4 text-gray-700">{{ customer.address }}</td>
-            <td class="px-6 py-4 text-sm text-gray-600">{{ customer.category }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-              <button
-                class="text-blue-600 hover:text-blue-900 mr-4"
-                @click="openEditForm(customer)"
-                title="Edit"
-              >
-                ✏️
-              </button>
-              <button
-                class="text-red-600 hover:text-red-900"
-                @click="confirmDelete(customer.id)"
-                title="Delete"
-              >
-                🗑️
-              </button>
-            </td>
-          </tr>
+            <DialogPanel class="w-full max-w-2xl bg-white rounded-2xl shadow-xl border-2 border-[#82B215]">
+              <!-- Header -->
+              <div class="flex items-center justify-between p-5 border-b">
+                <h3 class="text-xl font-semibold text-[#045B1B]">
+                  {{ isEdit ? 'Edit Customer' : 'Add New Customer' }}
+                </h3>
+                <button @click="handleClose" class="text-gray-500 hover:text-gray-700">✖</button>
+              </div>
 
-          <!-- Empty State -->
-          <tr v-if="filteredCustomers.length === 0">
-            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
-              No customers found.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+              <!-- Form -->
+              <form class="p-6 space-y-5" @submit.prevent="handleSubmit">
+                <div v-if="errorMessage" class="bg-red-50 text-red-700 p-3 rounded border border-red-200">
+                  {{ errorMessage }}
+                </div>
 
-    <!-- Customer Form Modal -->
-    <CustomerFormModal
-      :open="showFormModal"
-      :is-edit="isEdit"
-      :customer="selectedCustomer"
-      @onClose="closeForm"
-      @onSave="handleSave"
-    />
-  </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                    <input v-model="form.name" class="input" placeholder="Customer Name" required />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                    <input v-model="form.phone" class="input" placeholder="Phone Number" required />
+                  </div>
+
+                  <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <textarea v-model="form.address" class="input" rows="2" placeholder="Address"></textarea>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <input v-model="form.category" class="input" placeholder="e.g. Retail, Wholesale" />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tier Info</label>
+                    <input v-model="form.tier" class="input" placeholder="e.g. Gold, Platinum" />
+                  </div>
+
+                  <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea v-model="form.description" class="input" rows="3" placeholder="Additional notes"></textarea>
+                  </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex justify-end gap-4 pt-6">
+                  <button
+                    type="button"
+                    class="px-5 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    @click="handleClose"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    class="px-5 py-2 bg-[#82B215] text-white rounded-md hover:bg-[#6e9a12] transition"
+                  >
+                    {{ isEdit ? 'Update' : 'Add' }}
+                  </button>
+                </div>
+              </form>
+            </DialogPanel>
+          </TransitionChild>
+        </div>
+      </div>
+    </Dialog>
+  </TransitionRoot>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { ChevronLeftIcon } from '@heroicons/vue/24/outline'
-import CustomerFormModal from '@/components/Modal/CustomerForm.vue' // Adjust path as needed
+<script>
+import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue';
 
-const router = useRouter()
+export default {
+  name: 'CustomerForm',
+  components: { Dialog, DialogPanel, TransitionChild, TransitionRoot },
 
-const handleNavigateBack = () => {
-  router.push('/')
-}
+  props: {
+    open: { type: Boolean, default: false },
+    isEdit: { type: Boolean, default: false },
+    initialData: { type: Object, default: null },
+  },
 
-const searchText = ref('')
-const showFormModal = ref(false)
-const isEdit = ref(false)
-const selectedCustomer = ref(null)
+  emits: ['close', 'save'],
 
-const customers = ref([
-  { id: 1, name: 'Sok Dara', phone: '012345678', address: 'Phnom Penh', category: 'ឆ្នោត ភ្នំពេញ' },
-  { id: 2, name: 'Chea Bormey', phone: '098765432', address: 'Preah Vihear', category: 'វៀតណាម' },
-])
+  data() {
+    return {
+      form: {
+        id: null,
+        name: '',
+        phone: '',
+        address: '',
+        description: '',
+        category: '',
+        tier: '',
+      },
+      errorMessage: '',
+    };
+  },
 
-const filteredCustomers = computed(() => {
-  if (!searchText.value.trim()) return customers.value
+  watch: {
+    open: {
+      immediate: true,
+      handler(newVal) {
+        if (newVal && this.initialData) {
+          this.form = { ...this.initialData };
+        } else if (newVal) {
+          this.resetForm();
+        }
+      },
+    },
+  },
 
-  const query = searchText.value.toLowerCase()
-  return customers.value.filter(c =>
-    c.name.toLowerCase().includes(query) ||
-    c.phone.includes(query)
-  )
-})
+  methods: {
+    resetForm() {
+      this.form = {
+        id: null,
+        name: '',
+        phone: '',
+        address: '',
+        description: '',
+        category: '',
+        tier: '',
+      };
+      this.errorMessage = '';
+    },
 
-const openAddForm = () => {
-  isEdit.value = false
-  selectedCustomer.value = null
-  showFormModal.value = true
-}
+    handleClose() {
+      this.$emit('close');
+      this.resetForm();
+    },
 
-const openEditForm = (customer) => {
-  isEdit.value = true
-  selectedCustomer.value = { ...customer }
-  showFormModal.value = true
-}
+    handleSubmit() {
+      if (!this.form.name || !this.form.phone) {
+        this.errorMessage = 'Name and Phone Number are required.';
+        return;
+      }
 
-const closeForm = () => {
-  showFormModal.value = false
-  selectedCustomer.value = null
-}
-
-const confirmDelete = (id) => {
-  if (confirm('Are you sure you want to delete this customer?')) {
-    customers.value = customers.value.filter(c => c.id !== id)
-  }
-}
-
-const handleSave = (savedCustomer) => {
-  if (isEdit.value) {
-    const index = customers.value.findIndex(c => c.id === savedCustomer.id)
-    if (index !== -1) customers.value[index] = savedCustomer
-  } else {
-    const newId = Math.max(...customers.value.map(c => c.id), 0) + 1
-    customers.value.push({ ...savedCustomer, id: newId })
-  }
-  closeForm()
-}
+      this.$emit('save', { ...this.form });
+      alert(this.isEdit ? 'Customer updated successfully!' : 'Customer added successfully!');
+      this.handleClose();
+    },
+  },
+};
 </script>
+
+<style scoped>
+.input {
+  @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#82B215] focus:border-[#82B215];
+}
+</style>
