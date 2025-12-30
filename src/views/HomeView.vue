@@ -169,6 +169,8 @@ const menuItems = ref([
 
 // Quick Actions - MUST match your router paths exactly!
 const gridMenus = ref([
+    { label: 'testinvoce', to: '/testinvoce', icon: ChartBarSquareIcon, badge: 0 },
+
   { label: 'Customers', to: '/customer', icon: UsersIcon, badge: 12 },
   { label: 'Branch', to: '/branch', icon: BuildingOfficeIcon, badge: 0 },
     { label: 'User', to: '/user', icon: UserIcon, badge: 0 },

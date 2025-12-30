@@ -1,149 +1,116 @@
 <template>
   <div class="mx-5 font-noto">
-
-    <!-- Back Button -->
-    <button
-      @click="router.back()"
-      class="p-2 text-black hover:bg-blue-100 rounded-full transition mb-4 inline-flex items-center"
-    >
+    <button @click="handleNavigateBack" class="p-2 text-black hover:bg-blue-100 rounded-full transition mb-4 inline-flex items-center">
       <ChevronLeftIcon class="w-6 h-6" />
       <span class="ml-1 text-sm">Back</span>
     </button>
 
-    <!-- Header -->
     <div class="bg-white rounded-lg shadow-sm p-6 my-4 border-2 border-dashed border-[#5B9717]">
-      <h1 class="text-2xl md:text-3xl font-bold text-[#045B1B] mb-2">
-        Income and Expense Management System
-      </h1>
-      <p class="text-[#5B9717] mb-4">បង្កើតគណនីអតិថិជន (Create Customer)</p>
+      <h1 class="text-2xl md:text-3xl font-bold text-[#045B1B] mb-6">Customer Directory</h1>
 
-      <div class="flex flex-col md:flex-row gap-4 justify-between">
-        <input
-          v-model="searchText"
-          placeholder="Search by name, phone or address"
-          class="border rounded-md px-4 py-2 w-full md:w-80"
-        />
+      <div :class="!isMobileScreen ? 'hidden md:flex flex-wrap items-end justify-between gap-4' : 'block md:hidden space-y-4'">
+        <div class="flex flex-col">
+          <span class="text-sm font-medium text-gray-700 mb-1">Rows</span>
+          <select v-model="pageSize" class="w-24 border rounded-md px-3 py-2 text-sm focus:ring-[#5B9717]">
+            <option v-for="size in optionPageSize" :key="size" :value="size">{{ size }}</option>
+          </select>
+        </div>
 
-                <button class="btn-add-new flex items-center gap-2"  @click="openAdd">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5">
-            <path
-              d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-          </svg>
-          <span>Add New</span>
+        <div class="flex-1 max-w-lg">
+          <span class="text-sm font-medium text-gray-700 mb-1 block">Search</span>
+          <input v-model="searchQuery" type="text" placeholder="Search by name, phone or address..." class="w-full border rounded-md px-4 py-2 text-sm focus:ring-[#5B9717]" />
+        </div>
+
+        <button class="bg-[#5B9717] text-white px-4 py-2 rounded-md hover:bg-[#4a7c13] transition flex items-center gap-2" @click="openAddForm">
+          <PlusIcon class="w-5 h-5" />
+          <span>Add Customer</span>
         </button>
       </div>
     </div>
 
-    <!-- Table -->
-    <div class="bg-white rounded-lg shadow border">
-      <DataTable
-        :value="filteredCustomers"
-        paginator
-        :rows="10"
-        stripedRows
-      >
-        <Column field="id" header="ID" sortable />
-        <Column field="name" header="Name" sortable />
-        <Column field="phone" header="Phone" />
-        <Column field="address" header="Address" />
-        <Column field="description" header="Description" />
-        <Column field="category" header="Category" />
-        <Column field="tier" header="Tier" />
+    <div v-if="!isMobileScreen" class="bg-white rounded-lg shadow overflow-x-auto border relative">
+      <div v-if="isLoading" class="absolute inset-0 bg-white/50 flex justify-center items-center z-10">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5B9717]"></div>
+      </div>
 
-        <Column header="Action" style="width:140px">
-          <template #body="{ data }">
-            <div class="flex gap-2 justify-center">
-              <Button icon="pi pi-pencil" severity="warning" @click="openEdit(data)" />
-              <Button icon="pi pi-trash" severity="danger" @click="deleteCustomer(data.id)" />
-            </div>
-          </template>
-        </Column>
-      </DataTable>
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-[#045B1B] text-white">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase">Customer Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase">Phone / Address</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase">Current Balance</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase">Status</th>
+            <th class="px-6 py-3 text-center text-xs font-medium uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <tr v-for="(customer, index) in customerData" :key="customer._id" :class="index % 2 === 0 ? 'bg-white' : 'bg-[#f0fdf4]'">
+            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ customer.username }}</td>
+            <td class="px-6 py-4 text-sm text-gray-600">
+              <div class="flex items-center gap-1"><i class="pi pi-phone text-[10px]"></i> {{ customer.phoneNumber || '-' }}</div>
+              <div class="text-xs text-gray-400 truncate max-w-[200px]">{{ customer.address || 'No address' }}</div>
+            </td>
+            <td class="px-6 py-4">
+              <span :class="customer.balance < 0 ? 'text-red-600' : 'text-green-600'" class="font-mono font-bold">
+                {{ customer.balance !== null ? customer.balance.toLocaleString() : '0.00' }}
+              </span>
+            </td>
+            <td class="px-3 py-2">
+              <button @click="handleToggleStatus(customer)" :class="customer.status ? 'text-green-600' : 'text-red-600'">
+                <i class="pi" :class="customer.status ? 'pi-check-circle' : 'pi-times-circle'" />
+              </button>
+            </td>
+            <td class="px-6 py-4 text-center">
+              <button @click="openEditForm(customer)" class="p-2 text-[#045B1B]"><i class="pi pi-pencil" /></button>
+              <button @click="confirmDelete(customer)" class="p-2 text-red-600"><i class="pi pi-trash" /></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <!-- Modal -->
-    <CustomerForm
-      :open="showForm"
-      :is-edit="isEdit"
-      :initial-data="selectedCustomer"
-      @close="closeForm"
-      @save="handleSave"
-    />
+    <div v-else>
+      <CustomerCard :items="customerData" :is-loading="isLoading" @onEdit="openEditForm" @onDelete="confirmDelete" />
+    </div>
+
+    <Pagination class="mt-5" :currentPage="currentPage" :limitedPerPage="pageSize" collectionName="Customer" @onEmitDataFromPagination="handlePaginationData" />
+
+    <CustomerFormModal :visible="showFormModal" :is-edit-doc="isEditDoc" :doc="selectedCustomer" @onClose="closeForm" />
+    <DeleteConfirmation :visible="showDeleteModal" :deleteId="deleteId" :elementName="selectedCustomer?.username || ''" collectionName="Customer" @onCloseDelete="handleCloseDelete" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { ChevronLeftIcon } from '@heroicons/vue/24/outline'
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter } from 'vue-router';
+import { ChevronLeftIcon, PlusIcon } from '@heroicons/vue/24/outline';
+import CustomerFormModal from '../components/Modal/CustomerForm.vue';
+import CustomerCard from '@/mobile/CustomerCard.vue';
+import Pagination from '@/components/Pagination.vue';
+import DeleteConfirmation from '@/components/DeleteComfirmation.vue';
 
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
+const router = useRouter();
+const customerData = ref([]);
+const isLoading = ref(false);
+const isMobileScreen = ref(false);
+const searchQuery = ref('');
+const pageSize = ref(50);
+const optionPageSize = [50, 100, 200];
+const showFormModal = ref(false);
+const isEditDoc = ref(false);
+const selectedCustomer = ref(null);
+const showDeleteModal = ref(false);
+const deleteId = ref(null);
 
-import CustomerForm from '../components/Modal/CustomerForm.vue'
+const handleCheckScreenSize = () => { isMobileScreen.value = window.innerWidth < 768; };
+onMounted(() => { handleCheckScreenSize(); window.addEventListener('resize', handleCheckScreenSize); });
+onBeforeUnmount(() => window.removeEventListener('resize', handleCheckScreenSize));
 
-const router = useRouter()
-
-const searchText = ref('')
-const showForm = ref(false)
-const isEdit = ref(false)
-const selectedCustomer = ref(null)
-
-const customers = ref([
-  {
-    id: 1,
-    name: 'Sok Dara',
-    phone: '012 345 678',
-    address: 'Phnom Penh',
-    description: 'Regular customer',
-    category: 'ឆ្នោត ភ្នំពេញ',
-    tier: 'Tier 1: 109%'
-  }
-])
-
-const filteredCustomers = computed(() => {
-  if (!searchText.value.trim()) return customers.value
-  const q = searchText.value.toLowerCase()
-
-  return customers.value.filter(c =>
-    c.name.toLowerCase().includes(q) ||
-    c.phone.toLowerCase().includes(q) ||
-    c.address.toLowerCase().includes(q)
-  )
-})
-
-const openAdd = () => {
-  isEdit.value = false
-  selectedCustomer.value = null
-  showForm.value = true
-}
-
-const openEdit = (data) => {
-  isEdit.value = true
-  selectedCustomer.value = { ...data }
-  showForm.value = true
-}
-
-const closeForm = () => {
-  showForm.value = false
-  selectedCustomer.value = null
-}
-
-const handleSave = (payload) => {
-  if (isEdit.value) {
-    const index = customers.value.findIndex(c => c.id === payload.id)
-    if (index !== -1) customers.value[index] = payload
-  } else {
-    payload.id = Date.now()
-    customers.value.push(payload)
-  }
-  closeForm()
-}
-
-const deleteCustomer = (id) => {
-  if (confirm('Delete this customer?')) {
-    customers.value = customers.value.filter(c => c.id !== id)
-  }
-}
+const handlePaginationData = (items) => { customerData.value = items; };
+const openAddForm = () => { isEditDoc.value = false; selectedCustomer.value = null; showFormModal.value = true; };
+const openEditForm = (cust) => { isEditDoc.value = true; selectedCustomer.value = cust; showFormModal.value = true; };
+const confirmDelete = (cust) => { deleteId.value = cust._id; selectedCustomer.value = cust; showDeleteModal.value = true; };
+const closeForm = () => { showFormModal.value = false; };
+const handleCloseDelete = () => { showDeleteModal.value = false; };
+const handleNavigateBack = () => router.push('/');
 </script>
