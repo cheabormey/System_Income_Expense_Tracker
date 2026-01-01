@@ -1,6 +1,7 @@
 <template>
   <div class="mx-5 font-noto">
-    <button @click="handleNavigateBack" class="p-2 text-black hover:bg-blue-100 rounded-full transition mb-4 inline-flex items-center">
+    <button @click="handleNavigateBack"
+      class="p-2 text-black hover:bg-blue-100 rounded-full transition mb-4 inline-flex items-center">
       <ChevronLeftIcon class="w-6 h-6" />
       <span class="ml-1 text-sm">Back</span>
     </button>
@@ -8,20 +9,25 @@
     <div class="bg-white rounded-lg shadow-sm p-6 my-4 border-2 border-dashed border-[#5B9717]">
       <h1 class="text-2xl md:text-3xl font-bold text-[#045B1B] mb-6">User Management</h1>
 
-      <div :class="!isMobileScreen ? 'hidden md:flex flex-wrap items-end justify-between gap-4' : 'block md:hidden space-y-4'">
+      <div
+        :class="!isMobileScreen ? 'hidden md:flex flex-wrap items-end justify-between gap-4' : 'block md:hidden space-y-4'">
         <div class="flex flex-col">
           <span class="text-sm font-medium text-gray-700 mb-1">Page rows</span>
-          <select v-model="pageSize" :disabled="searchQuery !== ''" class="w-28 border rounded-md px-3 py-2 text-sm focus:ring-[#5B9717]">
+          <select v-model="pageSize" :disabled="searchQuery !== ''"
+            class="w-28 border rounded-md px-3 py-2 text-sm focus:ring-[#5B9717]">
             <option v-for="size in optionPageSize" :key="size" :value="size">{{ size }}</option>
           </select>
         </div>
 
         <div class="flex-1 max-w-md">
           <span class="text-sm font-medium text-gray-700 mb-1 block">Search Users</span>
-          <input v-model="searchQuery" type="text" placeholder="Search by username, phone, or role" class="w-full border rounded-md px-4 py-2 text-sm focus:ring-[#5B9717]" />
+          <input v-model="searchQuery" type="text" placeholder="Search by username, phone, or role"
+            class="w-full border rounded-md px-4 py-2 text-sm focus:ring-[#5B9717]" />
         </div>
 
-        <button class="bg-[#5B9717] text-white px-4 py-2 rounded-md hover:bg-[#4a7c13] transition flex items-center gap-2" @click="openAddForm">
+        <button
+          class="bg-[#5B9717] text-white px-4 py-2 rounded-md hover:bg-[#4a7c13] transition flex items-center gap-2"
+          @click="openAddForm">
           <PlusIcon class="w-5 h-5" />
           <span>Add New User</span>
         </button>
@@ -47,7 +53,8 @@
           <tr v-for="(user, index) in userData" :key="user._id" :class="index % 2 === 0 ? 'bg-white' : 'bg-[#f0fdf4]'">
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="flex items-center">
-                <div class="h-8 w-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                <div
+                  class="h-8 w-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
                   <img v-if="user.profilePicture" :src="user.profilePicture" class="h-full w-full object-cover" />
                   <i v-else class="pi pi-user text-gray-400"></i>
                 </div>
@@ -58,7 +65,8 @@
               </div>
             </td>
             <td class="px-6 py-4">
-              <span class="px-2 py-1 text-xs rounded-full" :class="user.mainRole === 'Super Admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'">
+              <span class="px-2 py-1 text-xs rounded-full"
+                :class="user.mainRole === 'Super Admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'">
                 {{ user.mainRole }}
               </span>
             </td>
@@ -81,10 +89,13 @@
       <UserCard :items="userData" :is-loading="isLoading" @onEdit="openEditForm" @onDelete="confirmDelete" />
     </div>
 
-    <Pagination class="mt-5" :currentPage="currentPage" :limitedPerPage="pageSize" collectionName="User" @onEmitDataFromPagination="handlePaginationData" />
+    <Pagination class="mt-5" :currentPage="currentPage" :limitedPerPage="pageSize" :searchQuery="searchQuery"
+      collectionName="User" @onEmitDataFromPagination="handlePaginationData" @onEmitIsLoading="handleIsLoading"
+      @onEmitCurrentPageIsLastRecord="handleIsLastRecord" />
 
     <UserFormModal :visible="showFormModal" :is-edit-doc="isEditDoc" :doc="selectedUser" @onClose="closeForm" />
-    <DeleteConfirmation :visible="showDeleteModal" :deleteId="deleteId" :elementName="selectedUser?.username || ''" collectionName="User" @onCloseDelete="handleCloseDelete" />
+    <DeleteConfirmation :visible="showDeleteModal" :deleteId="deleteId" :elementName="selectedUser?.username || ''"
+      collectionName="User" @onCloseDelete="handleCloseDelete" />
   </div>
 </template>
 
@@ -109,16 +120,39 @@ const isEditDoc = ref(false);
 const selectedUser = ref(null);
 const showDeleteModal = ref(false);
 const deleteId = ref(null);
+const currentPage = ref(1);
 
 const handleCheckScreenSize = () => { isMobileScreen.value = window.innerWidth < 768; };
 onMounted(() => { handleCheckScreenSize(); window.addEventListener('resize', handleCheckScreenSize); });
 onBeforeUnmount(() => window.removeEventListener('resize', handleCheckScreenSize));
 
-const handlePaginationData = (items) => { userData.value = items; };
+
+
 const openAddForm = () => { isEditDoc.value = false; selectedUser.value = null; showFormModal.value = true; };
 const openEditForm = (user) => { isEditDoc.value = true; selectedUser.value = user; showFormModal.value = true; };
 const confirmDelete = (user) => { deleteId.value = user._id; selectedUser.value = user; showDeleteModal.value = true; };
 const closeForm = () => { showFormModal.value = false; };
 const handleCloseDelete = () => { showDeleteModal.value = false; };
 const handleNavigateBack = () => router.push('/');
+
+const handlePaginationData = (items) => {
+  userData.value = items;
+  isLoading.value = false;
+};
+
+const handleIsLoading = (status) => {
+  isLoading.value = status;
+};
+
+const handleIsLastRecord = (status) => {
+  isLastRecordOnPage.value = status;
+};
+
+watch(searchQuery, () => {
+  currentPage.value = 1;
+});
+
+
+
+
 </script>
