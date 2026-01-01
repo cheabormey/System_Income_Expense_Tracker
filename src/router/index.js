@@ -10,6 +10,7 @@ import UserView from '@/views/UserView.vue'
 import CategoryView from '@/views/CategoryView.vue'
 import CustomerView from '@/views/CustomerView.vue'
 import testinvoce from '@/views/testinvoce.vue'
+import Login from '@/views/auth/Login.vue'
 
 const routes = [
   {
@@ -41,17 +42,21 @@ const routes = [
         path: 'invoice',
         component: Invoice
       },
-            {
+      {
         path: 'branch',
         component: BranchView
       },
-                  {
+      {
         path: 'user',
         component: UserView
       },
-                        {
+      {
         path: 'testinvoce',
         component: testinvoce
+      },
+      {
+        path: 'login',
+        component: Login
       },
     ],
   },
