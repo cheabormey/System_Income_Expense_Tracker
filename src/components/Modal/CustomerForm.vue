@@ -6,8 +6,13 @@
         <div class="flex min-h-full items-center justify-center p-4">
           <DialogPanel class="w-full max-w-xl bg-white rounded-2xl shadow-xl border-2 border-[#82B215]">
             <div class="flex items-center justify-between p-5 border-b">
-              <h3 class="text-xl font-semibold text-[#045B1B]">{{ isEditDoc ? 'Edit Customer' : 'Add New Customer' }}</h3>
-              <i class="pi pi-times cursor-pointer" @click="handleClose"></i>
+              <h3 class="text-xl font-semibold text-[#045B1B]">{{ isEditDoc ? 'Edit Customer' : 'Add New Customer' }}
+              </h3>
+              <svg @click="handleClose" class="close cursor-pointer w-6 h-6" xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20" fill="currentColor" aria-label="Close dialog">
+                <path
+                  d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
             </div>
 
             <form class="p-6 space-y-4" @submit.prevent="handleSubmit">
@@ -47,16 +52,25 @@
                   <textarea v-model="form.description" rows="2" class="w-full border rounded-md p-2"></textarea>
                 </div>
 
-                <div class="col-span-2 flex items-center gap-2">
+                <!-- <div class="col-span-2 flex items-center gap-2">
                   <input type="checkbox" v-model="form.status" id="cust-status" class="accent-[#82B215]" />
                   <label for="cust-status" class="text-sm">Active Customer</label>
-                </div>
+                </div> -->
               </div>
 
-              <div class="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" @click="handleClose" class="px-4 py-2 bg-gray-100 rounded-md">Cancel</button>
-                <button type="submit" class="px-6 py-2 bg-[#5B9717] text-white rounded-md" :disabled="loading">
-                  {{ loading ? 'Saving...' : 'Save Customer' }}
+              <!-- Status Toggle -->
+              <div class="flex items-center space-x-2 col-span-2">
+                <ToggleSwitch v-model="status" inputId="switch1" />
+                <label class="label" for="switch1">Active Status</label>
+              </div>
+
+              <div class="flex justify-end gap-4 pt-6 border-t">
+                <button type="button" class="px-5 py-2 btn-cancel" @click="handleClose" :disabled="loading">
+                  Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 btn-add " :disabled="loading || isNameDuplicate">
+                  <span v-if="loading" class="animate-spin">🌀</span>
+                  {{ isEditDoc ? 'Update' : 'Save' }}
                 </button>
               </div>
             </form>
@@ -109,7 +123,7 @@ const handleSubmit = async () => {
   loading.value = true;
   try {
     const payload = { fields: { ...form } };
-    const res = props.isEditDoc 
+    const res = props.isEditDoc
       ? await updateDoc('Customer', props.doc._id, payload)
       : await insertDoc('Customer', payload);
     if (res) handleClose();

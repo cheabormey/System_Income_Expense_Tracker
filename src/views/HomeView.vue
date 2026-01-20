@@ -229,6 +229,7 @@ const gridMenus = ref([
   { label: 'Categories', to: '/category', icon: DocumentTextIcon, badge: 0 },
   { label: 'Product', to: '/produce', icon: CubeIcon, badge: 0 },
   { label: 'Report', to: '/report', icon: ChartBarSquareIcon, badge: 0 },
+  { label: 'Account', to: '/account', icon: ChartBarSquareIcon, badge: 0 },
 ])
 
 const totalIncome = ref(0)

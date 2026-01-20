@@ -11,6 +11,7 @@ import CategoryView from '@/views/CategoryView.vue'
 import CustomerView from '@/views/CustomerView.vue'
 import testinvoce from '@/views/testinvoce.vue'
 import Login from '@/views/auth/Login.vue'
+import AccountView from '@/views/AccountView.vue'
 
 const routes = [
   {
@@ -53,6 +54,10 @@ const routes = [
       {
         path: 'testinvoce',
         component: testinvoce
+      },
+      {
+        path: 'account',
+        component: AccountView
       },
       {
         path: 'login',

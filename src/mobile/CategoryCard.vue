@@ -1,14 +1,8 @@
 <template>
   <div class="space-y-4 p-1">
-    <div 
-      v-for="(item, index) in items" 
-      :key="item._id || index"
-      class="relative bg-white border border-gray-100 shadow-md rounded-2xl overflow-hidden group transition-all duration-300 hover:shadow-lg active:scale-[0.98]"
-    >
-      <div 
-        class="absolute top-0 left-0 w-1.5 h-full"
-        :class="item.status ? 'bg-[#5B9717]' : 'bg-rose-500'"
-      ></div>
+    <div v-for="(item, index) in items" :key="item._id || index"
+      class="relative bg-white border border-gray-100 shadow-md rounded-2xl overflow-hidden group transition-all duration-300 hover:shadow-lg active:scale-[0.98]">
+      <div class="absolute top-0 left-0 w-1.5 h-full" :class="item.status ? 'bg-[#5B9717]' : 'bg-rose-500'"></div>
 
       <div class="p-4 pl-6">
         <div class="flex justify-between items-start gap-2">
@@ -19,15 +13,25 @@
             <p class="text-sm text-gray-500 mt-1 line-clamp-2">
               {{ item.description || "No description provided" }}
             </p>
+            <!-- Created Info -->
+            <div class="mt-3 flex flex-wrap gap-3 text-xs text-gray-400">
+              <span class="flex items-center gap-1">
+                <i class="pi pi-user"></i>
+                {{ item.createdBy ? 'User' : 'Unknown' }}
+              </span>
+              <span class="flex items-center gap-1">
+                <i class="pi pi-calendar"></i>
+                {{ formatDate(item.createdAt) }}
+              </span>
+            </div>
+
           </div>
 
-          <button 
-            @click.stop="$emit('onStatusChange', item)"
+          <button @click.stop="$emit('onStatusChange', item)"
             class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all border"
-            :class="item.status 
-              ? 'bg-green-50 text-green-700 border-green-200' 
-              : 'bg-rose-50 text-rose-700 border-rose-200'"
-          >
+            :class="item.status
+              ? 'bg-green-50 text-green-700 border-green-200'
+              : 'bg-rose-50 text-rose-700 border-rose-200'">
             <i class="pi" :class="item.status ? 'pi-check-circle' : 'pi-times-circle'"></i>
             {{ item.status ? 'Active' : 'Inactive' }}
           </button>
@@ -39,17 +43,13 @@
           </span>
 
           <div class="flex gap-3">
-            <button 
-              @click.stop="$emit('onEdit', item)"
-              class="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
-            >
+            <button @click.stop="$emit('onEdit', item)"
+              class="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors">
               <i class="pi pi-pencil text-sm"></i>
             </button>
-            
-            <button 
-              @click.stop="$emit('onDelete', item)"
-              class="flex items-center justify-center w-9 h-9 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-colors"
-            >
+
+            <button @click.stop="$emit('onDelete', item)"
+              class="flex items-center justify-center w-9 h-9 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-colors">
               <i class="pi pi-trash text-sm"></i>
             </button>
           </div>
@@ -57,7 +57,8 @@
       </div>
     </div>
 
-    <div v-if="!isLoading && items.length === 0" class="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+    <div v-if="!isLoading && items.length === 0"
+      class="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
       <i class="pi pi-folder-open text-4xl text-gray-300"></i>
       <p class="text-gray-500 mt-2 font-medium">No Data Found</p>
     </div>
@@ -70,6 +71,7 @@
 
 <script setup>
 import { defineProps, defineEmits } from 'vue';
+import formatDate from "@/composable/formatDate";
 
 const props = defineProps({
   items: {

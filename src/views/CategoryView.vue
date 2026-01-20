@@ -1,11 +1,9 @@
 <template>
   <div class="mx-5 font-noto">
     <!-- Back Button -->
-    <button
-      @click="handleNavigateBack"
+    <button @click="handleNavigateBack"
       class="p-2 text-black hover:bg-blue-100 rounded-full transition mb-4 inline-flex items-center"
-      aria-label="Go back"
-    >
+      aria-label="Go back">
       <ChevronLeftIcon class="w-6 h-6" />
       <span class="ml-1 text-sm">Back</span>
     </button>
@@ -20,11 +18,8 @@
         <!-- Page Rows -->
         <div class="flex flex-col">
           <span class="text-sm font-medium text-gray-700 mb-1">Page rows</span>
-          <select
-            v-model="pageSize"
-            :disabled="searchQuery !== ''"
-            class="w-28 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717] disabled:bg-gray-100 disabled:cursor-not-allowed"
-          >
+          <select v-model="pageSize" :disabled="searchQuery !== ''"
+            class="w-28 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717] disabled:bg-gray-100 disabled:cursor-not-allowed">
             <option v-for="size in optionPageSize" :key="size" :value="size">
               {{ size }}
             </option>
@@ -34,18 +29,15 @@
         <!-- Search -->
         <div class="w-full md:w-96">
           <span class="text-sm font-medium text-gray-700 mb-1 block">Search</span>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search by name or description"
-            class="w-full border rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717]"
-          />
+          <input v-model="searchQuery" type="text" placeholder="Search by name or description"
+            class="w-full border rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717]" />
         </div>
 
         <!-- Add Button -->
         <button class="btn-add-new flex items-center gap-2" @click="openAddForm">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5">
-            <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+            <path
+              d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
           </svg>
           <span>Add New Category</span>
         </button>
@@ -56,23 +48,16 @@
         <!-- Search -->
         <div>
           <span class="text-sm font-medium text-gray-700 mb-1 block">Search</span>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search by name or description"
-            class="w-full border rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717]"
-          />
+          <input v-model="searchQuery" type="text" placeholder="Search by name or description"
+            class="w-full border rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717]" />
         </div>
 
         <!-- Page Rows + Add Button -->
         <div class="flex justify-between items-end gap-4">
           <div class="flex flex-col">
             <span class="text-sm font-medium text-gray-700 mb-1">Page rows</span>
-            <select
-              v-model="pageSize"
-              :disabled="searchQuery !== ''"
-              class="w-28 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717] disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
+            <select v-model="pageSize" :disabled="searchQuery !== ''"
+              class="w-28 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717] disabled:bg-gray-100 disabled:cursor-not-allowed">
               <option v-for="size in optionPageSize" :key="size" :value="size">
                 {{ size }}
               </option>
@@ -81,7 +66,8 @@
 
           <button class="btn-add-new flex items-center gap-2" @click="openAddForm">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5">
-              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+              <path
+                d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
             </svg>
             <span>Add New</span>
           </button>
@@ -90,14 +76,8 @@
     </div>
 
     <!-- Desktop Table View -->
-    <div
-      v-if="!isMobileScreen"
-      class="bg-white rounded-lg shadow overflow-x-auto border relative"
-    >
-      <div
-        v-if="isLoading"
-        class="absolute inset-0 bg-white/50 flex justify-center items-center z-10"
-      >
+    <div v-if="!isMobileScreen" class="bg-white rounded-lg shadow overflow-x-auto border relative">
+      <div v-if="isLoading" class="absolute inset-0 bg-white/50 flex justify-center items-center z-10">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5B9717]"></div>
       </div>
 
@@ -106,18 +86,26 @@
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Name</th>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Description</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase">Created By</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase">Created At</th>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
             <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-          <tr
-            v-for="(category, index) in categoryData"
-            :key="category._id"
-            :class="index % 2 === 0 ? 'bg-white' : 'bg-[#f0fdf4]'"
-          >
+          <tr v-for="(category, index) in categoryData" :key="category._id"
+            :class="index % 2 === 0 ? 'bg-white' : 'bg-[#f0fdf4]'">
             <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ category.name }}</td>
             <td class="px-6 py-4 text-gray-700">{{ category.description || '-' }}</td>
+            <td class="px-6 py-4 text-center text-gray-700">
+              {{ getUserName(category.createdBy) }}
+            </td>
+            <td class="px-6 py-4 text-center text-gray-700">
+              {{ formatDate(category.createdAt) }}
+            </td>
+
+
+
 
             <!-- Status Toggle Button -->
             <td class="px-3 py-2 whitespace-nowrap">
@@ -126,9 +114,7 @@
                 :class="{
                   'text-green-600 hover:bg-green-50': category.status,
                   'text-red-600 hover:bg-red-50': !category.status,
-                }"
-                @click="handlePopStatusChange(category)"
-              >
+                }" @click="handlePopStatusChange(category)">
                 <i class="pi" :class="{ 'pi-check-circle': category.status, 'pi-times-circle': !category.status }" />
               </button>
             </td>
@@ -137,14 +123,11 @@
             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
               <button
                 class="inline-flex items-center justify-center w-8 h-8 rounded-md text-[#045B1B] hover:bg-[#f9faf5]"
-                @click="openEditForm(category)"
-              >
+                @click="openEditForm(category)">
                 <i class="pi pi-pencil text-base" />
               </button>
-              <button
-                class="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-600 hover:bg-red-50"
-                @click="confirmDelete(category)"
-              >
+              <button class="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-600 hover:bg-red-50"
+                @click="confirmDelete(category)">
                 <i class="pi pi-trash text-base" />
               </button>
             </td>
@@ -160,13 +143,8 @@
     <!-- Mobile Card View -->
     <div v-else class="block md:hidden">
       <div class="grid grid-cols-1 gap-4">
-        <CategoryCard
-          :items="categoryData"
-          :is-loading="isLoading"
-          @onEdit="openEditForm"
-          @onDelete="confirmDelete"
-          @onStatusChange="handlePopStatusChange"
-        />
+        <CategoryCard :items="categoryData" :is-loading="isLoading" @onEdit="openEditForm" @onDelete="confirmDelete"
+          @onStatusChange="handlePopStatusChange" />
       </div>
 
       <!-- Empty State for Mobile -->
@@ -177,34 +155,17 @@
 
     <!-- Pagination (always visible) -->
     <div class="mt-5">
-      <Pagination
-        :currentPage="currentPage"
-        :limitedPerPage="pageSize"
-        :searchQuery="searchQuery"
-        collectionName="Category"
-        @onEmitDataFromPagination="handleListenToPagination"
-        @onEmitIsLoading="handleListenIsLoading"
-        @onEmitCurrentPageIsLastRecord="handleListenIsLastRecordOnPage"
-      />
+      <Pagination :currentPage="currentPage" :limitedPerPage="pageSize" :searchQuery="searchQuery"
+        collectionName="Category" @onEmitDataFromPagination="handleListenToPagination"
+        @onEmitIsLoading="handleListenIsLoading" @onEmitCurrentPageIsLastRecord="handleListenIsLastRecordOnPage" />
     </div>
 
     <!-- Modals -->
-    <CategoryFormModal
-      :visible="showFormModal"
-      :is-edit-doc="isEditDoc"
-      :doc="selectedCategory"
-      @onClose="closeForm"
-    />
+    <CategoryFormModal :visible="showFormModal" :is-edit-doc="isEditDoc" :doc="selectedCategory" @onClose="closeForm" />
 
-    <DeleteConfirmation
-      :visible="showDeleteModal"
-      :deleteId="deleteId"
-      :elementName="selectedCategory?.name || ''"
-      collectionName="Category"
-      displayLabel="Category"
-      :isLastRecordOnPage="isLastRecordOnPage"
-      @onCloseDelete="handleCloseDelete"
-    />
+    <DeleteConfirmation :visible="showDeleteModal" :deleteId="deleteId" :elementName="selectedCategory?.name || ''"
+      collectionName="Category" displayLabel="Category" :isLastRecordOnPage="isLastRecordOnPage"
+      @onCloseDelete="handleCloseDelete" />
   </div>
 </template>
 
@@ -216,6 +177,7 @@ import Pagination from '@/components/Pagination.vue';
 import DeleteConfirmation from '@/components/DeleteComfirmation.vue';
 import CategoryCard from '@/mobile/CategoryCard.vue';
 import { ChevronLeftIcon } from '@heroicons/vue/24/outline';
+import formatDate from "@/composable/formatDate";
 
 export default {
   name: 'CategoryView',
@@ -243,6 +205,8 @@ export default {
     const showFormModal = ref(false);
     const isEditDoc = ref(false);
     const selectedCategory = ref(null);
+
+    const userData = ref([]);
 
     const showDeleteModal = ref(false);
     const deleteId = ref(null);
@@ -312,6 +276,12 @@ export default {
       }
     };
 
+    const getUserName = (id) => {
+      return id ? "User" : "Unknown User";
+    };
+
+
+
     const handlePopStatusChange = (category) => {
       // Emit or handle status toggle here
       // You might want to call an API or emit an event
@@ -352,6 +322,8 @@ export default {
       handleCloseDelete,
       handlePopStatusChange,
       handleCheckScreenSize,
+      getUserName,
+      formatDate
     };
   },
 };

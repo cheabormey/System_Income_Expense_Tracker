@@ -19,11 +19,11 @@
                 <!-- <button @click="handleClose" class="text-gray-500 hover:text-gray-700">
                   <span class="text-2xl">×</span>
                 </button> -->
-                                  <svg @click="handleClose" class="close cursor-pointer w-6 h-6" xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20" fill="currentColor" aria-label="Close dialog">
-                    <path
-                      d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                  </svg>
+                <svg @click="handleClose" class="close cursor-pointer w-6 h-6" xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20" fill="currentColor" aria-label="Close dialog">
+                  <path
+                    d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                </svg>
 
 
               </div>
@@ -48,23 +48,19 @@
                   <input type="checkbox" v-model="status" id="status" class="accent-[#82B215] h-4 w-4" />
                   <label for="status" class="text-sm text-gray-700">Active Status</label>
                 </div> -->
-                                    <!-- Status Toggle -->
-                    <div class="flex items-center space-x-2 col-span-2">
-                        <ToggleSwitch v-model="status" inputId="switch1" />
-                        <label class="label" for="switch1">Active Status</label>
-                    </div>
+                <!-- Status Toggle -->
+                <div class="flex items-center space-x-2 col-span-2">
+                  <ToggleSwitch v-model="status" inputId="switch1" />
+                  <label class="label" for="switch1">Active Status</label>
+                </div>
 
 
 
                 <div class="flex justify-end gap-4 pt-6 border-t">
-                  <button type="button"
-                    class="px-5 py-2 btn-cancel"
-                    @click="handleClose" :disabled="loading">
+                  <button type="button" class="px-5 py-2 btn-cancel" @click="handleClose" :disabled="loading">
                     Cancel
                   </button>
-                  <button type="submit"
-                    class="px-5 py-2 btn-add "
-                    :disabled="loading || isNameDuplicate">
+                  <button type="submit" class="px-5 py-2 btn-add " :disabled="loading || isNameDuplicate">
                     <span v-if="loading" class="animate-spin">🌀</span>
                     {{ isEditDoc ? 'Update' : 'Save' }}
                   </button>
@@ -107,7 +103,7 @@ export default {
 
     const { insertDoc, updateDoc } = useDocument();
     const { getDocs } = getDocument();
-   const branchStore = useBranchStore();
+    const branchStore = useBranchStore();
 
     // DUPLICATE CHECK LOGIC
     const checkCategoryNameUnique = debounce(async () => {
@@ -153,7 +149,7 @@ export default {
     const handleClose = () => {
       open.value = false;
       emit('onClose', 'close');
-      setTimeout(handleClear, 300); 
+      setTimeout(handleClear, 300);
     };
 
     const handleSubmit = async () => {
