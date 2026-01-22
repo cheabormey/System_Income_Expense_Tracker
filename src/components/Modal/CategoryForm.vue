@@ -1,66 +1,75 @@
 <template>
   <TransitionRoot as="template" :show="open">
-    <Dialog as="div" class="relative z-50" @close="handleClose">
+    <Dialog as="div" class="relative z-50" :static="true" @close="() => { }">
+      <!-- Overlay -->
       <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0" enter-to="opacity-100"
         leave="ease-in duration-200" leave-from="opacity-100" leave-to="opacity-0">
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm " />
       </TransitionChild>
 
-      <div class="fixed inset-0 overflow-y-auto">
+      <!-- Modal Wrapper -->
+      <div class="fixed inset-0 overflow-y-auto scrollbar">
         <div class="flex min-h-full items-center justify-center px-4 py-6">
           <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0 scale-95"
             enter-to="opacity-100 scale-100" leave="ease-in duration-200" leave-from="opacity-100 scale-100"
             leave-to="opacity-0 scale-95">
             <DialogPanel class="w-full max-w-lg bg-white rounded-2xl shadow-xl border-2 border-[#82B215]">
+              <!-- Header -->
               <div class="flex items-center justify-between p-5 border-b">
                 <h3 class="text-xl font-semibold text-[#045B1B]">
-                  {{ isEditDoc ? ('Edit Category') : ('Add New Category') }}
+                  {{ isEditDoc ? 'Edit Category' : 'Add New Category' }}
                 </h3>
-                <!-- <button @click="handleClose" class="text-gray-500 hover:text-gray-700">
-                  <span class="text-2xl">×</span>
-                </button> -->
-                <svg @click="handleClose" class="close cursor-pointer w-6 h-6" xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20" fill="currentColor" aria-label="Close dialog">
-                  <path
-                    d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                </svg>
 
-
+        <svg @click="handleClose" class="close cursor-pointer w-6 h-6" xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20" fill="currentColor">
+          <path
+            d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+        </svg>
               </div>
 
+              <!-- Form -->
               <form class="p-6 space-y-5" @submit.prevent="handleSubmit">
+                <!-- Category Name -->
                 <div>
-                  <label class="label font-medium block mb-1">Category Name <span class="text-red-500">*</span></label>
-                  <input v-model="name" class="input"
-                    :class="{ 'border-red-500 ring-1 ring-red-500': isNameInvalid || isNameDuplicate }"
-                    placeholder="Enter category name" />
-                  <p v-if="isNameInvalid" class="text-red-500 text-xs mt-1">Category name is required.</p>
-                  <p v-if="isNameDuplicate" class="text-red-500 text-xs mt-1">This category name already exists.</p>
+                  <label class="label font-medium block mb-1">
+                    Category Name <span class="text-red-500">*</span>
+                  </label>
+
+                  <input v-model="name" class="input w-full"
+                    :class="{ 'input-invalid': isNameInvalid || isNameDuplicate }" placeholder="Enter category name"
+                    @blur="checkCategoryNameUnique" />
+
+                  <p v-if="isNameInvalid" class="error-text">
+                    Category name is required.
+                  </p>
+
+                  <p v-if="isNameDuplicate" class="error-text">
+                    This category name already exists.
+                  </p>
                 </div>
 
+                <!-- Description -->
                 <div>
                   <label class="label font-medium block mb-1">Description</label>
-                  <textarea v-model="description" class="input" rows="3"
+                  <textarea v-model="description" class="input w-full" rows="3"
                     placeholder="Enter optional description"></textarea>
                 </div>
 
-                <!-- <div class="flex items-center gap-2">
-                  <input type="checkbox" v-model="status" id="status" class="accent-[#82B215] h-4 w-4" />
-                  <label for="status" class="text-sm text-gray-700">Active Status</label>
-                </div> -->
-                <!-- Status Toggle -->
-                <div class="flex items-center space-x-2 col-span-2">
-                  <ToggleSwitch v-model="status" inputId="switch1" />
-                  <label class="label" for="switch1">Active Status</label>
+                <!-- Status -->
+                <div class="flex items-center gap-2">
+                  <ToggleSwitch v-model="status" inputId="category-status" />
+                  <label class="label" for="category-status">
+                    Active Status
+                  </label>
                 </div>
 
-
-
+                <!-- Buttons -->
                 <div class="flex justify-end gap-4 pt-6 border-t">
-                  <button type="button" class="px-5 py-2 btn-cancel" @click="handleClose" :disabled="loading">
+                  <button type="button" class="btn-cancel" @click="handleClose" :disabled="loading">
                     Cancel
                   </button>
-                  <button type="submit" class="px-5 py-2 btn-add " :disabled="loading || isNameDuplicate">
+
+                  <button type="submit" class="btn-add" :disabled="loading || isNameDuplicate">
                     <span v-if="loading" class="animate-spin">🌀</span>
                     {{ isEditDoc ? 'Update' : 'Save' }}
                   </button>
@@ -73,6 +82,7 @@
     </Dialog>
   </TransitionRoot>
 </template>
+
 
 <script>
 import { ref, watch, onMounted } from 'vue';

@@ -12,11 +12,9 @@
       <div
         :class="!isMobileScreen ? 'hidden md:flex flex-wrap items-end justify-between gap-4' : 'block md:hidden space-y-4'">
         <div class="flex flex-col">
-          <span class="text-sm font-medium text-gray-700 mb-1">Page rows</span>
-          <select v-model="pageSize" :disabled="searchQuery !== ''"
-            class="w-28 border rounded-md px-3 py-2 text-sm focus:ring-[#5B9717]">
-            <option v-for="size in optionPageSize" :key="size" :value="size">{{ size }}</option>
-          </select>
+          <span class="text-sm font-medium text-gray-700 mb-1">Rows</span>
+          <Select v-model="pageSize" :options="optionPageSize" placeholder="Select size"
+            class="w-24 custom-row-select" />
         </div>
 
         <div class="flex-1 max-w-md">
@@ -25,11 +23,19 @@
             class="w-full border rounded-md px-4 py-2 text-sm focus:ring-[#5B9717]" />
         </div>
 
-        <button
+        <!-- <button
           class="bg-[#5B9717] text-white px-4 py-2 rounded-md hover:bg-[#4a7c13] transition flex items-center gap-2"
           @click="openAddForm">
           <PlusIcon class="w-5 h-5" />
           <span>Add New User</span>
+        </button> -->
+                <!-- Add Button -->
+        <button class="btn-add-new flex items-center gap-2" @click="openAddForm">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5">
+            <path
+              d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+          </svg>
+          <span>Add New Category</span>
         </button>
       </div>
     </div>

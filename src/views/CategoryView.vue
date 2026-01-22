@@ -17,13 +17,9 @@
       <div v-if="!isMobileScreen" class="hidden md:flex flex-wrap items-end justify-between gap-4">
         <!-- Page Rows -->
         <div class="flex flex-col">
-          <span class="text-sm font-medium text-gray-700 mb-1">Page rows</span>
-          <select v-model="pageSize" :disabled="searchQuery !== ''"
-            class="w-28 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717] disabled:bg-gray-100 disabled:cursor-not-allowed">
-            <option v-for="size in optionPageSize" :key="size" :value="size">
-              {{ size }}
-            </option>
-          </select>
+          <span class="text-sm font-medium text-gray-700 mb-1">Rows</span>
+          <Select v-model="pageSize" :options="optionPageSize" placeholder="Select size"
+            class="w-24 custom-row-select" />
         </div>
 
         <!-- Search -->
@@ -54,15 +50,11 @@
 
         <!-- Page Rows + Add Button -->
         <div class="flex justify-between items-end gap-4">
-          <div class="flex flex-col">
-            <span class="text-sm font-medium text-gray-700 mb-1">Page rows</span>
-            <select v-model="pageSize" :disabled="searchQuery !== ''"
-              class="w-28 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717] disabled:bg-gray-100 disabled:cursor-not-allowed">
-              <option v-for="size in optionPageSize" :key="size" :value="size">
-                {{ size }}
-              </option>
-            </select>
-          </div>
+        <div class="flex flex-col">
+          <span class="text-sm font-medium text-gray-700 mb-1">Rows</span>
+          <Select v-model="pageSize" :options="optionPageSize" placeholder="Select size"
+            class="w-24 custom-row-select" />
+        </div>
 
           <button class="btn-add-new flex items-center gap-2" @click="openAddForm">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5">

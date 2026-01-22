@@ -13,9 +13,8 @@
         :class="!isMobileScreen ? 'hidden md:flex flex-wrap items-end justify-between gap-4' : 'block md:hidden space-y-4'">
         <div class="flex flex-col">
           <span class="text-sm font-medium text-gray-700 mb-1">Rows</span>
-          <select v-model="pageSize" class="w-24 border rounded-md px-3 py-2 text-sm focus:ring-[#5B9717]">
-            <option v-for="size in optionPageSize" :key="size" :value="size">{{ size }}</option>
-          </select>
+          <Select v-model="pageSize" :options="optionPageSize" placeholder="Select size"
+            class="w-24 custom-row-select" />
         </div>
 
         <div class="flex-1 max-w-lg">

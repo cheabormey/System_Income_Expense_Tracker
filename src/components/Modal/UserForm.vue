@@ -1,28 +1,48 @@
 <template>
   <TransitionRoot as="template" :show="visible">
-    <Dialog as="div" class="relative z-50" @close="handleClose">
+    <Dialog as="div" class="relative z-50" :static="true" @close="() => { }">
+      <!-- Overlay (visual only, no close) -->
       <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+
       <div class="fixed inset-0 overflow-y-auto">
         <div class="flex min-h-full items-center justify-center p-4">
           <DialogPanel class="w-full max-w-2xl bg-white rounded-2xl shadow-xl border-2 border-[#82B215]">
+            <!-- Header -->
             <div class="flex items-center justify-between p-5 border-b">
-              <h3 class="text-xl font-semibold text-[#045B1B]">{{ isEditDoc ? 'Edit User' : 'Add New User' }}</h3>
-              <i class="pi pi-times cursor-pointer" @click="handleClose"></i>
+              <h3 class="text-xl font-semibold text-[#045B1B]">
+                {{ isEditDoc ? 'Edit User' : 'Add New User' }}
+              </h3>
+
+              <!-- Close icon (ONLY way to close) -->
+              <svg @click="handleClose" class="close cursor-pointer w-6 h-6" xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
             </div>
 
+            <!-- Form -->
             <form class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent="handleSubmit">
-              <div class="col-span-1">
-                <label class="block text-sm font-medium mb-1">Username *</label>
-                <input v-model="form.username" type="text" class="w-full border rounded-md p-2 focus:ring-[#82B215]" required />
-              </div>
-
-              <div class="col-span-1">
-                <label class="block text-sm font-medium mb-1">{{ isEditDoc ? 'New Password (Optional)' : 'Password *' }}</label>
-                <input v-model="form.password" type="password" class="w-full border rounded-md p-2 focus:ring-[#82B215]" :required="!isEditDoc" />
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  Username *
+                </label>
+                <input v-model="form.username" type="text" class="w-full border rounded-md p-2 focus:ring-[#82B215]"
+                  required />
               </div>
 
               <div>
-                <label class="block text-sm font-medium mb-1">Main Role</label>
+                <label class="block text-sm font-medium mb-1">
+                  {{ isEditDoc ? 'New Password (Optional)' : 'Password *' }}
+                </label>
+                <input v-model="form.password" type="password" class="w-full border rounded-md p-2 focus:ring-[#82B215]"
+                  :required="!isEditDoc" />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  Main Role
+                </label>
                 <select v-model="form.mainRole" class="w-full border rounded-md p-2">
                   <option value="User">User</option>
                   <option value="Admin">Admin</option>
@@ -31,7 +51,9 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium mb-1">Gender</label>
+                <label class="block text-sm font-medium mb-1">
+                  Gender
+                </label>
                 <select v-model="form.gender" class="w-full border rounded-md p-2">
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
@@ -40,23 +62,33 @@
                 </select>
               </div>
 
-              <div class="col-span-1">
-                <label class="block text-sm font-medium mb-1">Phone Number</label>
+              <div>
+                <label class="block text-sm font-medium mb-1">
+                  Phone Number
+                </label>
                 <input v-model="form.phoneNumber" type="text" class="w-full border rounded-md p-2" />
               </div>
 
-              <div class="col-span-2">
-                <label class="block text-sm font-medium mb-1">Address</label>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium mb-1">
+                  Address
+                </label>
                 <textarea v-model="form.address" rows="2" class="w-full border rounded-md p-2"></textarea>
               </div>
 
-              <div class="col-span-2 flex items-center gap-2">
+              <div class="md:col-span-2 flex items-center gap-2">
                 <input type="checkbox" v-model="form.status" id="user-status" class="accent-[#82B215]" />
-                <label for="user-status" class="text-sm">Active Account</label>
+                <label for="user-status" class="text-sm">
+                  Active Account
+                </label>
               </div>
 
-              <div class="col-span-2 flex justify-end gap-3 pt-4 border-t">
-                <button type="button" @click="handleClose" class="px-4 py-2 bg-gray-100 rounded-md">Cancel</button>
+              <!-- Buttons -->
+              <div class="md:col-span-2 flex justify-end gap-3 pt-4 border-t">
+                <button type="button" @click="handleClose" class="px-4 py-2 bg-gray-100 rounded-md">
+                  Cancel
+                </button>
+
                 <button type="submit" class="px-6 py-2 bg-[#5B9717] text-white rounded-md" :disabled="loading">
                   {{ loading ? 'Saving...' : 'Save' }}
                 </button>
@@ -68,6 +100,7 @@
     </Dialog>
   </TransitionRoot>
 </template>
+
 
 <script setup>
 import { ref, watch, reactive } from 'vue';
@@ -105,7 +138,7 @@ const handleSubmit = async () => {
     const payload = { fields: { ...form } };
     if (props.isEditDoc && !form.password) delete payload.fields.password;
 
-    const res = props.isEditDoc 
+    const res = props.isEditDoc
       ? await updateDoc('User', props.doc._id, payload)
       : await insertDoc('User', payload);
 

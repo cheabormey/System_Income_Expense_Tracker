@@ -77,30 +77,35 @@ module.exports = {
       NotoSerifKhmer: ["Noto Serif Khmer", "serif"],
     },
   },
-  plugins: [
-    function ({ addUtilities }) {
-      addUtilities({
-        ".scrollbar": {
-          "scrollbar-width": "thin",
-          "scrollbar-color": "#1A2D69 #e9ecf6", // thumb / track
-        },
-        ".scrollbar::-webkit-scrollbar": {
-          width: "8px",
-        },
-        ".scrollbar::-webkit-scrollbar-track": {
-          background: "#e9ecf6", // bg 50
-          borderRadius: "8px",
-        },
-        ".scrollbar::-webkit-scrollbar-thumb": {
-          backgroundColor: "#1A2D69", // primary DEFAULT
-          borderRadius: "8px",
-        },
-        ".scrollbar::-webkit-scrollbar-thumb:hover": {
-          backgroundColor: "#5876c7", // primary 400 for hover
-        },
-      });
-    },
-  ],
+plugins: [
+  function ({ addUtilities }) {
+    addUtilities({
+      ".scrollbar": {
+        "scrollbar-width": "thin",
+        "scrollbar-color": "#045B1B #f0fdf4", // thumb: DEFAULT / track: bg
+      },
+      ".scrollbar::-webkit-scrollbar": {
+        width: "8px",
+        height: "8px",
+      },
+      ".scrollbar::-webkit-scrollbar-track": {
+        background: "#f0fdf4", // primary.bg
+        borderRadius: "8px",
+      },
+      ".scrollbar::-webkit-scrollbar-thumb": {
+        backgroundColor: "#045B1B", // primary.DEFAULT
+        borderRadius: "8px",
+        border: "2px solid #f0fdf4", // padding effect
+      },
+      ".scrollbar::-webkit-scrollbar-thumb:hover": {
+        backgroundColor: "#5B9717", // primary.light or hover
+      },
+      ".scrollbar::-webkit-scrollbar-thumb:active": {
+        backgroundColor: "#034d16", // primary.dark
+      },
+    });
+  },
+],
 
    
     // purple
@@ -154,4 +159,7 @@ module.exports = {
   //     });
   //   },
   // ],
+
+
+  
 };
