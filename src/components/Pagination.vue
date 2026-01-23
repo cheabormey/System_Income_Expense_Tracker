@@ -619,10 +619,10 @@ export default {
 
         case "/customer":
           collectionName = "Customer";
-          searchFieldsArray.value = "customerName";
+          searchFieldsArray.value = "username";
+          populate.value = JSON.stringify(["createdBy"]);
           sortOrder = "desc";
           break;
-
 
 
 

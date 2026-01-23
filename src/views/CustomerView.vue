@@ -45,7 +45,7 @@
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase">Customer Name</th>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase">Phone / Address</th>
-            <th class="px-6 py-3 text-left text-xs font-medium uppercase">Current Balance</th>
+            <!-- <th class="px-6 py-3 text-left text-xs font-medium uppercase">Current Balance</th> -->
             <th class="px-6 py-3 text-left text-xs font-medium uppercase">Created By</th>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase">Created At</th>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase">Status</th>
@@ -61,13 +61,13 @@
                 '-' }}</div>
               <div class="text-xs text-gray-400 truncate max-w-[200px]">{{ customer.address || 'No address' }}</div>
             </td>
-            <td class="px-6 py-4">
+            <!-- <td class="px-6 py-4">
               <span :class="customer.balance < 0 ? 'text-red-600' : 'text-green-600'" class="font-mono font-bold">
                 {{ customer.balance !== null ? customer.balance.toLocaleString() : '0.00' }}
               </span>
-            </td>
+            </td> -->
             <td class="px-6 py-4 text-center text-sm text-gray-600">
-              {{ getUserName(customer.createdBy) }}
+              {{ customer.createdBy?.username || 'System' }}
             </td>
             <td class="px-6 py-4 text-center text-sm text-gray-600">
               {{ formatDate(customer.createdAt) }}
@@ -178,9 +178,7 @@ export default {
     const handleCloseDelete = () => {
       showDeleteModal.value = false
     }
-    const getUserName = (id) => {
-      return id ? "User" : "Unknown User";
-    };
+
 
     const handleNavigateBack = () => {
       router.push('/')
@@ -208,7 +206,6 @@ export default {
       closeForm,
       handleCloseDelete,
       handleNavigateBack,
-      getUserName,
       // utils
       formatDate
     }

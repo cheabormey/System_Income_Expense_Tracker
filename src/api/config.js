@@ -1,7 +1,7 @@
 const API_CONFIGS = {
 
-  // BASE_URL: "http://localhost:4000",
-  BASE_URL: "http://192.168.1.139:4000",
+  BASE_URL: "http://localhost:4000",
+  // BASE_URL: "http://192.168.1.139:4000",
     // BASE_URL: "http://192.168.100.10:4000",
 //   headers: {
 //     accept: "application/json",

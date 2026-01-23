@@ -12,7 +12,10 @@ import CustomerView from '@/views/CustomerView.vue'
 import testinvoce from '@/views/testinvoce.vue'
 import Login from '@/views/auth/Login.vue'
 import AccountView from '@/views/AccountView.vue'
-
+import ChiefExpenseView from '@/views/ChiefExpense.vue'
+import CustomerReimburstmentView from '@/views/CustomerReimburstment.vue'
+import CustomerReturnMoneyView from '@/views/CustomerReturnMoney.vue'
+import LotteryChiefBalanaceView from '@/views/LotteryChiefBalance.vue'
 const routes = [
   {
     path: '/',
@@ -58,6 +61,22 @@ const routes = [
       {
         path: 'account',
         component: AccountView
+      },
+       {
+        path: 'chief-expense',
+        component: ChiefExpenseView
+      },
+       {
+        path: 'customer-reimburstment',
+        component: CustomerReimburstmentView
+      },
+       {
+        path: 'customer-return-money',
+        component: CustomerReturnMoneyView
+      },
+       {
+        path: 'lottery-chief-balance',
+        component: LotteryChiefBalanaceView
       },
       {
         path: 'login',
