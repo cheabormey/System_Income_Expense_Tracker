@@ -1,60 +1,103 @@
 <template>
-  <Dialog :visible="open" modal header="Invoice Form" class="w-full max-w-2xl" @hide="$emit('close')">
-    <div class="flex flex-col gap-4">
-      <InputText v-model="form.customer" placeholder="Customer Name" />
-      <InputText v-model="form.total" type="number" placeholder="Total Amount" />
+  <Dialog
+    v-model:visible="visible"
+    :header="isEditMode ? 'Update Entry' : 'New Entry'"
+    modal
+    class="p-fluid"
+    style="width: 450px"
+  >
+    <div class="field mb-3">
+      <label class="font-bold">Date</label>
+      <Calendar v-model="localEntry.date" dateFormat="dd/mm/yy" showIcon />
+    </div>
 
-      <Dropdown v-model="form.type" :options="['Max','Fast']" placeholder="Invoice Type" />
+    <div class="field mb-3">
+      <label class="font-bold">Category</label>
+      <Dropdown
+        v-model="localEntry.category"
+        :options="categories"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select"
+      />
+    </div>
 
-      <div class="flex justify-end gap-3 mt-4">
-        <Button label="Cancel" class="p-button-outlined" @click="$emit('close')" />
-        <Button :label="isEdit ? 'Update' : 'Add'" class="p-button-primary" @click="submit" />
+    <div class="field mb-3">
+      <label class="font-bold">Customer</label>
+      <Dropdown
+        v-model="localEntry.customer"
+        :options="customers"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select"
+      />
+    </div>
+
+    <div class="field mb-3">
+      <label class="font-bold">Head Number</label>
+      <InputText v-model="localEntry.head" />
+    </div>
+
+    <div class="grid">
+      <div class="col-6 field">
+        <label class="font-bold">2 Digit</label>
+        <InputNumber v-model="localEntry.twoDigit" :min="0" />
+      </div>
+      <div class="col-6 field">
+        <label class="font-bold">3 Digit</label>
+        <InputNumber v-model="localEntry.threeDigit" :min="0" />
       </div>
     </div>
+
+    <template #footer>
+      <Button label="Cancel" text @click="close" />
+      <Button label="Save" icon="pi pi-check" @click="submit" />
+    </template>
   </Dialog>
 </template>
 
 <script>
-import { ref, watch } from 'vue'
-import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
-import Button from 'primevue/button'
-import Dropdown from 'primevue/dropdown'
+import { ref, watch } from 'vue';
+import Dialog from 'primevue/dialog';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import Dropdown from 'primevue/dropdown';
+import Calendar from 'primevue/calendar';
 
 export default {
-  components: { Dialog, InputText, Button, Dropdown },
-
-  props: {
-    open: Boolean,
-    data: Object,
-    isEdit: Boolean
+  name: 'InvoiceForm',
+  components: {
+    Dialog,
+    Button,
+    InputText,
+    InputNumber,
+    Dropdown,
+    Calendar
   },
-
+  props: {
+    modelValue: Boolean,
+    entry: Object,
+    isEditMode: Boolean,
+    categories: Array,
+    customers: Array
+  },
+  emits: ['update:modelValue', 'save'],
   setup(props, { emit }) {
-    const form = ref({ customer: '', total: '', type: '' })
+    const visible = ref(props.modelValue);
+    const localEntry = ref({ ...props.entry });
 
-    watch(() => props.data, (val) => {
-      if (val) form.value = { ...val }
-      else form.value = { customer: '', total: '', type: '' }
-    }, { immediate: true })
+    watch(() => props.modelValue, v => (visible.value = v));
+    watch(() => props.entry, v => (localEntry.value = { ...v }));
+
+    const close = () => emit('update:modelValue', false);
 
     const submit = () => {
-      if (!form.value.customer || !form.value.total || !form.value.type) {
-        alert('Please fill all fields')
-        return
-      }
-      emit('save', { ...form.value, id: props.data?.id })
-      emit('close')
-    }
+      emit('save', { ...localEntry.value });
+      close();
+    };
 
-    return { form, submit }
+    return { visible, localEntry, close, submit };
   }
-}
+};
 </script>
-
-<style scoped>
-:deep(.p-button-primary) {
-  background-color: #3b82f6;
-  border: none;
-}
-</style>

@@ -3,22 +3,26 @@ import App from './App.vue'
 import router from './router'
 import './assets/tailwind.css'
 
+/* PrimeVue */
 import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 import { definePreset } from '@primevue/themes'
 import 'primeicons/primeicons.css'
 
+/* Pinia */
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
+/* PrimeVue Components */
 import ToggleSwitch from 'primevue/toggleswitch'
 import Select from "primevue/select";
 import MultiSelect from 'primevue/multiselect';
+import InputText from "primevue/inputtext";
+import InputNumber from "primevue/inputnumber";
+import Textarea from "primevue/textarea";
+import Button from "primevue/button"; // ✅ IMPORT BUTTON
 
-
-
-
-
+/* Create Vue App */
 const app = createApp(App)
 
 /* Pinia */
@@ -41,7 +45,6 @@ const MyPreset = definePreset(Aura, {
       900: "#045B1B", // DARK COLOR
       950: "#033f12",
     },
-
     secondary: {
       50:  "#f7fde9",
       100: "#ecf9c6",
@@ -58,7 +61,6 @@ const MyPreset = definePreset(Aura, {
   },
 })
 
-
 /* PrimeVue */
 app.use(PrimeVue, {
   theme: {
@@ -71,11 +73,18 @@ app.use(PrimeVue, {
   },
 })
 
+/* Vue Router & Pinia */
 app.use(router)
 app.use(pinia)
 
+/* Global Components */
 app.component('ToggleSwitch', ToggleSwitch)
-app.component("Select", Select);
+app.component("Select", Select)
+app.component("MultiSelect", MultiSelect)
+app.component("InputText", InputText)
+app.component("InputNumber", InputNumber)
+app.component("Textarea", Textarea)
+app.component("Button", Button) // ✅ REGISTER BUTTON
 
-app.component("MultiSelect",MultiSelect)
+/* Mount App */
 app.mount('#app')
