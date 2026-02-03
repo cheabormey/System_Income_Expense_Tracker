@@ -340,7 +340,7 @@ export default {
         data.value = [];
         totalPages.value = 1;
         currentPage.value = 1; // Reset to first page when search changes
-        searchQuery.value = newValue;
+        searchQuery.value = newValue || "";
 
         await fetchData(); // Fetch new data with search query
       },

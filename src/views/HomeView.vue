@@ -228,7 +228,7 @@ const gridMenus = ref([
   { label: 'Invoice', to: '/invoice', icon: ReceiptPercentIcon, badge: 0 },
   { label: 'Categories', to: '/category', icon: DocumentTextIcon, badge: 0 },
   { label: 'Product', to: '/produce', icon: CubeIcon, badge: 0 },
-  { label: 'Account', to: '/account', icon: ChartBarSquareIcon, badge: 0 },
+  // { label: 'Account', to: '/account', icon: ChartBarSquareIcon, badge: 0 },
   { label: 'Reimburstment', to: '/customer-reimburstment', icon: ChartBarSquareIcon, badge: 0 },
   { label: 'ReturnMoney', to: '/customer-return-money', icon: ChartBarSquareIcon, badge: 0 },
   { label: 'ChiefBalanace', to: '/lottery-chief-balance', icon: ChartBarSquareIcon, badge: 0 },
