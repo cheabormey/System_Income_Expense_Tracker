@@ -1,46 +1,60 @@
 <template>
-  <div class="p-4 shadow-4 border-round surface-card">
+  <div class="p-4 md:p-6 lg:p-8 bg-white shadow-lg rounded-xl max-w-7xl mx-auto">
+    <!-- Back Button -->
     <button @click="handleNavigateBack"
-      class="p-2 text-color hover:bg-blue-100 border-none bg-transparent border-round-3xl transition-all mb-4 inline-flex align-items-center cursor-pointer">
-      <i class="pi pi-chevron-left text-xl"></i>
-      <span class="ml-1 font-bold">Back</span>
+      class="flex items-center gap-2 px-4 py-2 mb-4 text-gray-700 hover:bg-blue-100 rounded-full transition">
+      <i class="pi pi-chevron-left text-lg"></i>
+      <span class="font-semibold">Back</span>
     </button>
 
-    <div class="flex justify-content-between align-items-center mb-4">
-      <h2 class="m-0 text-2xl font-bold">Daily Betting Ledger</h2>
-      <div class="flex gap-2">
-        <Button label="New Entry" icon="pi pi-plus" class="p-button-raised bg-[#5B9717] border-none" @click="openNew" />
-        <Button label="Print Selected" icon="pi pi-print" class="p-button-success" @click="printSelectedEntries" />
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-800">Daily Betting Ledger</h2>
+      <div class="flex flex-wrap gap-2">
+        <Button label="New Entry" icon="pi pi-plus" class="p-button-raised bg-green-600 hover:bg-green-700 border-none"
+          @click="openNew" />
+        <Button label="Print Selected" icon="pi pi-print" class="p-button-success border-none"
+          @click="printSelectedEntries" />
       </div>
     </div>
 
-    <DataTable :value="entries" responsiveLayout="scroll" stripedRows v-model:selection="selectedEntries" dataKey="_id"
-      class="p-datatable-sm shadow-1 border-round overflow-hidden">
-      <Column selectionMode="multiple" headerStyle="width: 3em"></Column>
-      <Column field="playDate" header="Date" sortable>
-        <template #body="slotProps">
-          {{ formatDate(slotProps.data.playDate) }}
-        </template>
-      </Column>
-      <Column field="customerId.username" header="Customer"></Column>
-      <Column field="totalAmount" header="Total Amount">
-        <template #body="slotProps">
-          <span :class="slotProps.data.totalAmount < 0 ? 'text-red-600' : 'text-green-600'">
-            {{ slotProps.data.totalAmount.toLocaleString() }}
-          </span>
-        </template>
-      </Column>
-      <Column header="Actions">
-        <template #body="slotProps">
-          <Button icon="pi pi-pencil" class="p-button-text p-button-success" @click="editEntry(slotProps.data)" />
-          <Button icon="pi pi-trash" class="p-button-text p-button-danger" @click="deleteEntry(slotProps.data._id)" />
-        </template>
-      </Column>
-    </DataTable>
+    <!-- Data Table -->
+    <div class="overflow-x-auto">
+      <DataTable :value="entries" responsiveLayout="scroll" stripedRows v-model:selection="selectedEntries"
+        dataKey="_id" class="p-datatable-sm shadow rounded-lg">
+        <Column selectionMode="multiple" headerStyle="width: 3em"></Column>
 
+        <Column field="playDate" header="Date" sortable>
+          <template #body="slotProps">
+            {{ formatDate(slotProps.data.playDate) }}
+          </template>
+        </Column>
+
+        <Column field="customerId.username" header="Customer"></Column>
+
+        <Column field="totalAmount" header="Total Amount">
+          <template #body="slotProps">
+            <span
+              :class="slotProps.data.totalAmount < 0 ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'">
+              {{ slotProps.data.totalAmount ? slotProps.data.totalAmount.toLocaleString() : '0' }}
+            </span>
+          </template>
+        </Column>
+
+
+        <Column header="Actions">
+          <template #body="slotProps">
+            <Button icon="pi pi-pencil" class="p-button-text p-button-success mr-2"
+              @click="editEntry(slotProps.data)" />
+            <Button icon="pi pi-trash" class="p-button-text p-button-danger" @click="deleteEntry(slotProps.data._id)" />
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+
+    <!-- Modal Form -->
     <InvoiceForm :visible="displayDialog" :isEditDoc="isEditMode" :doc="selectedDoc" @onClose="displayDialog = false"
       @refresh="fetchLedgerData" />
-
   </div>
 </template>
 
@@ -50,72 +64,45 @@ import { useRouter } from 'vue-router';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
-// Import your custom form component
 import InvoiceForm from '../components/Modal/InvoiceForm.vue';
 import { getDocument } from '@/composable/getDocument';
 
 export default {
-  components: {
-    DataTable, Column, Button, InvoiceForm
-  },
+  components: { DataTable, Column, Button, InvoiceForm },
   setup() {
     const router = useRouter();
     const { getDocs } = getDocument();
 
-    // --- STATE ---
     const entries = ref([]);
     const selectedEntries = ref([]);
     const displayDialog = ref(false);
     const isEditMode = ref(false);
     const selectedDoc = ref(null);
 
-    // --- DATA FETCHING ---
     const fetchLedgerData = async () => {
       const res = await getDocs('Invoice');
-      if (res?.data) {
-        entries.value = res.data;
-      }
+      if (res?.data) entries.value = res.data;
     };
 
     onMounted(fetchLedgerData);
 
-    // --- UTILS ---
     const formatDate = (val) => {
       if (!val) return '';
-      const d = new Date(val);
-      return d.toLocaleDateString('en-GB');
+      return new Date(val).toLocaleDateString('en-GB');
     };
 
     const handleNavigateBack = () => router.push('/');
-
-    // --- CRUD LOGIC ---
-    const openNew = () => {
-      selectedDoc.value = null;
-      isEditMode.value = false;
-      displayDialog.value = true;
-    };
-
-    const editEntry = (data) => {
-      selectedDoc.value = data;
-      isEditMode.value = true;
-      displayDialog.value = true;
-    };
-
+    const openNew = () => { selectedDoc.value = null; isEditMode.value = false; displayDialog.value = true; };
+    const editEntry = (data) => { selectedDoc.value = data; isEditMode.value = true; displayDialog.value = true; };
     const deleteEntry = async (id) => {
       if (confirm('Are you sure you want to delete this invoice?')) {
-        // Use your useDocument delete function here if available
         // await deleteDoc('Invoice', id);
         // fetchLedgerData();
       }
     };
-
-    // --- PRINTER LOGIC (Updated to match Invoice Schema) ---
     const printSelectedEntries = () => {
-      if (!selectedEntries.value.length) {
-        alert('Please select entries to print.');
-        return;
-      }
-      // ... (existing print logic using selectedEntries.value)
+      if (!selectedEntries.value.length) { alert('Please select entries to print.'); return; }
+      // ... print logic
     };
 
     return {
@@ -126,3 +113,19 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+/* Mobile-friendly scroll for small screens */
+.p-datatable-sm {
+  min-width: 600px;
+}
+
+/* Hover effect for actions */
+.p-button-text.p-button-success:hover {
+  background-color: #d1fae5;
+}
+
+.p-button-text.p-button-danger:hover {
+  background-color: #fee2e2;
+}
+</style>

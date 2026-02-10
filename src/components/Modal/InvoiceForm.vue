@@ -1,291 +1,234 @@
 <template>
-  <Dialog v-model:visible="internalVisible" modal :header="isEditDoc ? 'Update Invoice' : 'New Invoice'"
-    class="p-fluid w-full max-w-[95vw] md:max-w-7xl border-none" 
-    contentClass="bg-gray-50 rounded-b-xl"
-    @hide="close">
-    
-    <div class="space-y-6 pt-2">
-      <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="field mb-0">
-          <label class="block text-sm font-bold text-gray-700 mb-2">Play Date</label>
-          <Calendar v-model="form.playDate" dateFormat="dd/mm/yy" showIcon class="h-11 w-full" />
-        </div>
-        <div class="field mb-0">
-          <label class="block text-sm font-bold text-gray-700 mb-2">Customer Name</label>
-          <Dropdown v-model="form.customerId" :options="customerOptions" optionLabel="username" optionValue="_id"
-            placeholder="Select customer" filter class="h-11 flex align-items-center w-full"
-            @change="handleCustomerChange" />
-        </div>
-      </div>
-
-      <div>
-        <div class="flex justify-between items-center px-1 mb-3">
-          <h3 class="text-lg font-extrabold text-[#045B1B] flex items-center gap-2">
-            <i class="pi pi-list"></i> Betting Entries
-          </h3>
-          <Button label="New Row" icon="pi pi-plus" size="small" 
-            class="p-button-rounded bg-[#5B9717] border-none shadow-md w-auto px-4" 
-            @click="addLotteryPlay" />
+  <Dialog
+    :visible="visible"
+    modal
+    :header="isEditDoc ? 'Edit Invoice' : 'New Invoice'"
+    class="w-[95vw] md:w-[70vw] lg:w-[55vw]"
+    @hide="handleClose"
+  >
+    <div class="space-y-6">
+      <!-- BASIC INFO -->
+      <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="form-label font-semibold mb-1 block">Branch</label>
+          <Dropdown
+            v-model="form.branchId"
+            :options="branches"
+            optionLabel="name"
+            optionValue="_id"
+            placeholder="Select Branch"
+            class="w-full"
+          />
         </div>
 
-        <div class="space-y-3">
-          <div v-for="(play, index) in form.lotteryPlays" :key="index" 
-            class="bg-white border border-gray-200 rounded-xl shadow-sm relative overflow-visible hover:shadow-md transition-shadow">
-            
-            <div class="grid grid-cols-1 md:grid-cols-12 p-3 gap-4 items-center">
-              
-              <div class="col-span-1 md:col-span-3 border-r border-gray-100 pr-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Category / Head</label>
-                <div class="flex gap-2">
-                  <Dropdown v-model="play.categoryId" :options="categoryOptions" optionLabel="name" optionValue="_id" 
-                    placeholder="Cat" class="w-1/2 h-10 text-sm" />
-                  <InputText v-model="play.productId" placeholder="Head" class="w-1/2 h-10 text-sm" />
-                </div>
-              </div>
+        <div>
+          <label class="form-label font-semibold mb-1 block">Customer</label>
+          <Dropdown
+            v-model="form.customerId"
+            :options="customers"
+            optionLabel="username"
+            optionValue="_id"
+            placeholder="Select Customer"
+            class="w-full"
+          />
+        </div>
 
-              <!-- <div class="col-span-1 md:col-span-2 border-r border-gray-100 pr-2">
-                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Bet Amount</label>
-                <InputNumber v-model="play.totalAmount" mode="decimal" class="h-10 w-full font-bold" placeholder="0.00" />
-              </div> -->
+        <div>
+          <label class="form-label font-semibold mb-1 block">Play Date</label>
+          <Calendar
+            v-model="form.playDate"
+            dateFormat="yy-mm-dd"
+            showIcon
+            class="w-full"
+          />
+        </div>
+      </section>
 
-              <div class="col-span-1 md:col-span-3 bg-blue-50/60 p-2 rounded-lg border border-blue-100">
-                <div class="flex items-center justify-between mb-1">
-                   <div class="flex items-center gap-2">
-                     <Checkbox v-model="play.isTwoNumber" :binary="true" inputId="chk2d" />
-                     <label for="chk2d" class="text-xs font-bold text-blue-700 cursor-pointer">2D Type</label>
-                   </div>
-                   <span class="text-[9px] text-blue-400 font-bold">x{{ getRule('Type 2').winMultiplier }}</span>
-                </div>
-                <InputNumber v-model="play.winTwoNumberType" placeholder="Enter Win Amount" 
-                  class="h-9 w-full text-sm" :disabled="!play.isTwoNumber" />
-              </div>
+      <!-- LOTTERY PLAYS -->
+      <section>
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-lg font-semibold">Lottery Plays</h3>
+          <Button label="Add Play" icon="pi pi-plus" size="small" @click="addPlay" />
+        </div>
 
-              <div class="col-span-1 md:col-span-3 bg-purple-50/60 p-2 rounded-lg border border-purple-100">
-                <div class="flex items-center justify-between mb-1">
-                   <div class="flex items-center gap-2">
-                     <Checkbox v-model="play.isThreeNumber" :binary="true" inputId="chk3d" />
-                     <label for="chk3d" class="text-xs font-bold text-purple-700 cursor-pointer">3D Type</label>
-                   </div>
-                   <span class="text-[9px] text-purple-400 font-bold">x{{ getRule('Type 3').winMultiplier }}</span>
-                </div>
-                <InputNumber v-model="play.winThreeNumberType" placeholder="Enter Win Amount" 
-                   class="h-9 w-full text-sm" :disabled="!play.isThreeNumber" />
-              </div>
+        <div
+          v-for="(play, index) in form.lotteryPlays"
+          :key="index"
+          class="border rounded-lg p-4 mb-4 bg-gray-50 space-y-3"
+        >
+          <div class="flex justify-between items-center mb-2">
+            <strong>Play #{{ index + 1 }}</strong>
+            <Button icon="pi pi-trash" text severity="danger" @click="removePlay(index)" />
+          </div>
 
-              <div class="col-span-1 md:col-span-1 flex flex-col items-end justify-center pl-2">
-                <label class="text-[9px] font-bold text-gray-400 uppercase block md:text-right w-full">Net</label>
-                <div class="text-lg font-black mb-1" :class="calculateRowTotal(play) < 0 ? 'text-red-500' : 'text-[#045B1B]'">
-                  {{ calculateRowTotal(play).toLocaleString() }}
-                </div>
-                <Button icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm h-6 w-6 mt-1" 
-                  @click="removeLotteryPlay(index)" v-if="form.lotteryPlays.length > 1" />
-              </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Dropdown
+              v-model="play.category"
+              :options="categories"
+              optionLabel="name"
+              optionValue="_id"
+              placeholder="Category"
+            />
+            <InputText v-model="play.title" placeholder="Title" class="w-full" />
+          </div>
 
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex items-center gap-3">
+              <InputNumber v-model="play.winTwoNumber" placeholder="2D Win Number" class="flex-1" />
+              <Checkbox v-model="play.isTwoNumber" binary /> <span>2D</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <InputNumber v-model="play.winThreeNumber" placeholder="3D Win Number" class="flex-1" />
+              <Checkbox v-model="play.isThreeNumber" binary /> <span>3D</span>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="bg-gray-800 p-6 rounded-xl text-white shadow-xl mt-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 items-end">
-          <div class="flex flex-col">
-            <span class="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">2D Income</span>
-            <span class="text-xl md:text-2xl font-mono font-medium text-blue-200">{{ total2DIncome.toLocaleString() }}</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">3D Income</span>
-            <span class="text-xl md:text-2xl font-mono font-medium text-purple-300">{{ total3DIncome.toLocaleString() }}</span>
-          </div>
-          <div class="hidden md:block"></div> 
-          <div class="flex flex-col border-l border-gray-600 pl-6 col-span-2 md:col-span-1">
-            <span class="text-red-400 text-xs font-bold uppercase tracking-wider mb-1">Grand Total (Net)</span>
-            <span class="text-3xl font-black leading-none" :class="grandTotal >= 0 ? 'text-green-400' : 'text-red-500'">
-              {{ grandTotal.toLocaleString() }}
-            </span>
-          </div>
+      <!-- TOTAL SUMMARY -->
+      <section class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-100 p-4 rounded-lg">
+        <InputNumber v-model="form.finalTwoAmount" disabled placeholder="Final 2D" />
+        <InputNumber v-model="form.finalThreeAmount" disabled placeholder="Final 3D" />
+        <InputNumber v-model="form.deptAmount" disabled placeholder="Debt" />
+        <InputNumber v-model="form.totalAmount" disabled placeholder="Grand Total" />
+      </section>
+
+      <!-- DESCRIPTION -->
+      <section>
+        <label class="form-label font-semibold mb-1 block">Description</label>
+        <Textarea v-model="form.description" rows="3" class="w-full" />
+      </section>
+
+      <!-- FLAGS -->
+      <section class="flex flex-wrap gap-6 mt-2">
+        <div>
+          <Checkbox v-model="form.isChiefLotteryWin" binary /> Chief Win
         </div>
-      </div>
+        <div>
+          <Checkbox v-model="form.isDebt" binary /> Debt
+        </div>
+        <div>
+          <Checkbox v-model="form.isUnchanged" binary /> Unchanged
+        </div>
+      </section>
     </div>
 
     <template #footer>
-      <div class="flex gap-3 justify-end mt-4 pt-3 border-t border-gray-200">
-        <Button label="Cancel" text @click="close" class="text-gray-500 w-auto" />
-        <Button label="Save Invoice" icon="pi pi-check" class="bg-[#045B1B] border-none px-6 w-auto" @click="submit" :loading="isSubmitting" />
-      </div>
+      <Button label="Cancel" text @click="handleClose" />
+      <Button label="Save" icon="pi pi-check" @click="saveInvoice" />
     </template>
   </Dialog>
 </template>
 
-<script>
-import { ref, watch, onMounted, computed } from 'vue';
-import Dialog from 'primevue/dialog';
-import Button from 'primevue/button';
-import InputText from 'primevue/inputtext';
-import InputNumber from 'primevue/inputnumber';
-import Dropdown from 'primevue/dropdown';
-import Calendar from 'primevue/calendar';
-import Checkbox from 'primevue/checkbox';
-import { getDocument } from '@/composable/getDocument';
-import { useDocument } from '@/composable/useDocument';
+<script setup>
+import { ref, watch } from 'vue'
+import Dialog from 'primevue/dialog'
+import Dropdown from 'primevue/dropdown'
+import Calendar from 'primevue/calendar'
+import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
+import Checkbox from 'primevue/checkbox'
+import Textarea from 'primevue/textarea'
+import Button from 'primevue/button'
+import { useDocument } from '@/composable/useDocument'
+import { getDocument } from '@/composable/getDocument'
 
-export default {
-  components: { Dialog, Button, InputText, InputNumber, Dropdown, Calendar, Checkbox },
-  props: { visible: Boolean, isEditDoc: Boolean, doc: Object },
-  emits: ['onClose', 'refresh'],
-  setup(props, { emit }) {
-    const { getDocs } = getDocument();
-    const { insertDoc, updateDoc } = useDocument();
-    
-    const isSubmitting = ref(false);
-    const customerOptions = ref([]);
-    const categoryOptions = ref([]);
-    const currentCustomerConfig = ref(null);
+const props = defineProps({
+  visible: Boolean,
+  isEditDoc: Boolean,
+  doc: Object
+})
 
-    const internalVisible = computed({
-      get: () => props.visible,
-      set: (value) => { if (!value) emit('onClose'); }
-    });
+const emit = defineEmits(['onClose', 'refresh'])
 
-    const form = ref({
-      customerId: '',
-      playDate: new Date(),
-      lotteryPlays: [],
-      finalTwoAmount: 0,
-      finalThreeAmount: 0,
-      totalAmount: 0
-    });
+const { insertDoc, updateDoc } = useDocument()
 
-    const createNewPlay = () => ({
-      categoryId: '',
-      productId: '', 
-      isTwoNumber: false, 
-      isThreeNumber: false,
-      winTwoNumberType: null,
-      winThreeNumberType: null,
-      totalAmount: 0
-    });
+const branches = ref([])
+const customers = ref([])
+const categories = ref([])
 
-    const loadOptions = async () => {
-      const [customers, categories] = await Promise.all([
-        getDocs('Customer'),
-        getDocs('Category')
-      ]);
-      if (customers?.data) customerOptions.value = customers.data;
-      if (categories?.data) categoryOptions.value = categories.data;
-    };
-    onMounted(loadOptions);
+const form = ref({
+  branchId: null,
+  customerId: null,
+  playDate: null,
+  lotteryPlays: [],
+  finalTwoAmount: 0,
+  finalThreeAmount: 0,
+  deptAmount: 0,
+  totalAmount: 0,
+  description: '',
+  isChiefLotteryWin: false,
+  isDebt: false,
+  isUnchanged: false
+})
 
-    const handleCustomerChange = () => {
-      const cust = customerOptions.value.find(c => c._id === form.value.customerId);
-      currentCustomerConfig.value = cust || null;
-    };
+const fetchDropdownData = async () => {
+  try {
+    const [branchRes, customerRes, categoryRes] = await Promise.all([
+      getDocument().getDocs('Branch'),
+      getDocument().getDocs('Customer'),
+      getDocument().getDocs('Category')
+    ])
+    branches.value = branchRes.data || []
+    customers.value = customerRes.data || []
+    categories.value = categoryRes.data || []
+  } catch (err) {
+    console.error(err)
+  }
+}
 
-    const getRule = (typeStr) => {
-      const defaultRule = { percentages: 100, winMultiplier: typeStr === 'Type 3' ? 600 : 100 };
-      if (!currentCustomerConfig.value?.percentages) return defaultRule;
-      const rule = currentCustomerConfig.value.percentages.find(p => p.productType === typeStr);
-      return rule || defaultRule;
-    };
-
-    // CALCULATION LOGIC
-    const calculateRowTotal = (play) => {
-      let income = 0;
-      let payout = 0;
-
-      if (play.isTwoNumber) {
-        const rule = getRule("Type 2");
-        income += play.totalAmount * (rule.percentages / 100);
-        if (play.winTwoNumberType > 0) payout += play.winTwoNumberType * rule.winMultiplier;
-      }
-
-      if (play.isThreeNumber) {
-        const rule = getRule("Type 3");
-        income += play.totalAmount * (rule.percentages / 100);
-        if (play.winThreeNumberType > 0) payout += play.winThreeNumberType * rule.winMultiplier;
-      }
-
-      return Math.round(income - payout);
-    };
-
-    const total2DIncome = computed(() => {
-      return form.value.lotteryPlays.reduce((sum, p) => {
-        if (p.isTwoNumber) {
-          const rule = getRule("Type 2");
-          return sum + (p.totalAmount * (rule.percentages / 100));
-        }
-        return sum;
-      }, 0);
-    });
-
-    const total3DIncome = computed(() => {
-      return form.value.lotteryPlays.reduce((sum, p) => {
-         if (p.isThreeNumber) {
-           const rule = getRule("Type 3");
-           return sum + (p.totalAmount * (rule.percentages / 100));
-         }
-         return sum;
-      }, 0);
-    });
-
-    const grandTotal = computed(() => {
-      return form.value.lotteryPlays.reduce((sum, p) => sum + calculateRowTotal(p), 0);
-    });
-
-    watch(() => props.doc, (val) => {
-      if (val) {
-        form.value = { 
-          ...val, 
-          playDate: val.playDate ? new Date(val.playDate) : new Date(),
-          lotteryPlays: val.lotteryPlays?.length ? [...val.lotteryPlays] : [createNewPlay()]
-        };
-        if (val.customerId) {
-          setTimeout(() => handleCustomerChange(), 100);
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      fetchDropdownData()
+      if (props.isEditDoc && props.doc) {
+        form.value = {
+          ...props.doc,
+          lotteryPlays: Object.values(props.doc.lotteryPlays || {})
         }
       } else {
-        form.value = { customerId: '', playDate: new Date(), lotteryPlays: [createNewPlay()], finalTwoAmount: 0, finalThreeAmount: 0, totalAmount: 0 };
-        currentCustomerConfig.value = null;
+        form.value.lotteryPlays = []
       }
-    }, { immediate: true });
-
-    const close = () => emit('onClose');
-
-    const submit = async () => {
-      isSubmitting.value = true;
-      try {
-        form.value.finalTwoAmount = total2DIncome.value;
-        form.value.finalThreeAmount = total3DIncome.value;
-        form.value.totalAmount = grandTotal.value;
-
-        if (props.isEditDoc) {
-          await updateDoc('Invoice', props.doc._id, form.value);
-        } else {
-          await insertDoc('Invoice', form.value);
-        }
-        emit('refresh');
-        close();
-      } catch (err) {
-        console.error("Submission error:", err);
-      } finally {
-        isSubmitting.value = false;
-      }
-    };
-
-    return { 
-      internalVisible, form, customerOptions, categoryOptions, 
-      currentCustomerConfig, getRule,
-      isSubmitting, close, submit, 
-      addLotteryPlay: () => form.value.lotteryPlays.push(createNewPlay()),
-      removeLotteryPlay: (i) => form.value.lotteryPlays.splice(i, 1),
-      calculateRowTotal, total2DIncome, total3DIncome, grandTotal, handleCustomerChange
-    };
+    }
   }
-};
-</script>
+)
 
-<style scoped>
-:deep(.p-inputnumber-input:disabled) {
-  background-color: #f9fafb;
-  color: #9ca3af;
-  cursor: not-allowed;
+const addPlay = () => {
+  form.value.lotteryPlays.push({
+    category: null,
+    title: '',
+    winTwoNumber: 0,
+    winThreeNumber: 0,
+    isTwoNumber: false,
+    isThreeNumber: false
+  })
 }
-</style>
+
+const removePlay = (index) => {
+  form.value.lotteryPlays.splice(index, 1)
+}
+
+const saveInvoice = async () => {
+  const payload = {
+    fields: {
+      ...form.value,
+      lotteryPlays: Object.fromEntries(
+        form.value.lotteryPlays.map((p, i) => [`play_${i}`, p])
+      )
+    }
+  }
+
+  if (props.isEditDoc && props.doc?._id) {
+    await updateDoc('Invoice', props.doc._id, payload)
+  } else {
+    await insertDoc('Invoice', payload)
+  }
+
+  emit('refresh')
+  handleClose()
+}
+
+const handleClose = () => emit('onClose')
+</script>
