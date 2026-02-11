@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import './assets/tailwind.css'
-
+import i18n from "../src/i18n";
 /* PrimeVue */
 import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
@@ -76,7 +76,7 @@ app.use(PrimeVue, {
 /* Vue Router & Pinia */
 app.use(router)
 app.use(pinia)
-
+app.use(i18n);
 /* Global Components */
 app.component('ToggleSwitch', ToggleSwitch)
 app.component("Select", Select)

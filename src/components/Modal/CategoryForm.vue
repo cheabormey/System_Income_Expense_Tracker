@@ -1,77 +1,70 @@
 <template>
   <TransitionRoot as="template" :show="open">
     <Dialog as="div" class="relative z-50" :static="true" @close="() => { }">
-      <!-- Overlay -->
       <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0" enter-to="opacity-100"
         leave="ease-in duration-200" leave-from="opacity-100" leave-to="opacity-0">
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm " />
       </TransitionChild>
 
-      <!-- Modal Wrapper -->
       <div class="fixed inset-0 overflow-y-auto scrollbar">
         <div class="flex min-h-full items-center justify-center px-4 py-6">
           <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0 scale-95"
             enter-to="opacity-100 scale-100" leave="ease-in duration-200" leave-from="opacity-100 scale-100"
             leave-to="opacity-0 scale-95">
             <DialogPanel class="w-full max-w-lg bg-white rounded-2xl shadow-xl border-2 border-[#82B215]">
-              <!-- Header -->
               <div class="flex items-center justify-between p-5 border-b">
                 <h3 class="text-xl font-semibold text-[#045B1B]">
-                  {{ isEditDoc ? 'Edit Category' : 'Add New Category' }}
+                  {{ isEditDoc ? t('Edit Category') : t('Add New Category') }}
                 </h3>
 
-        <svg @click="handleClose" class="close cursor-pointer w-6 h-6" xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20" fill="currentColor">
-          <path
-            d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-        </svg>
+                <svg @click="handleClose" class="close cursor-pointer w-6 h-6" xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                </svg>
               </div>
 
-              <!-- Form -->
               <form class="p-6 space-y-5" @submit.prevent="handleSubmit">
-                <!-- Category Name -->
-                <div>
-                  <label class="label font-medium block mb-1">
-                    Category Name <span class="text-red-500">*</span>
-                  </label>
+                <div class="space-y-2">
+                  <div class="flex space-x-2 items-center">
+                    <label for="name" class="label font-medium">
+                      {{ t('Category Name') }}
+                    </label>
+                    <span class="rq-label"></span>
+                  </div>
 
-                  <input v-model="name" class="input w-full"
-                    :class="{ 'input-invalid': isNameInvalid || isNameDuplicate }" placeholder="Enter category name"
-                    @blur="checkCategoryNameUnique" />
+                  <InputText id="name" v-model="name" class="w-full" :invalid="isNameInvalid || isNameDuplicate"
+                    :placeholder="t('Category Name')" autocomplete="off" @blur="checkCategoryNameUnique" />
 
-                  <p v-if="isNameInvalid" class="error-text">
-                    Category name is required.
-                  </p>
+                  <Message v-if="isNameInvalid" severity="error" class="text-red-500">
+                    {{ t('Category name is required') }}
+                  </Message>
 
-                  <p v-if="isNameDuplicate" class="error-text">
-                    This category name already exists.
-                  </p>
+                  <Message v-else-if="isNameDuplicate" severity="error" class="text-red-500">
+                    {{ t('This category name already exists') }}
+                  </Message>
                 </div>
 
-                <!-- Description -->
                 <div>
-                  <label class="label font-medium block mb-1">Description</label>
+                  <label class="label font-medium block mb-1">{{ t('Description') }}</label>
                   <textarea v-model="description" class="input w-full" rows="3"
-                    placeholder="Enter optional description"></textarea>
+                    :placeholder="t('Enter optional description')"></textarea>
                 </div>
 
-                <!-- Status -->
                 <div class="flex items-center gap-2">
                   <ToggleSwitch v-model="status" inputId="category-status" />
                   <label class="label" for="category-status">
-                    Active Status
+                    {{ t('Active Status') }}
                   </label>
                 </div>
 
-                <!-- Buttons -->
                 <div class="flex justify-end gap-4 pt-6 border-t">
                   <button type="button" class="btn-cancel" @click="handleClose" :disabled="loading">
-                    Cancel
+                    {{ t('Cancel') }}
                   </button>
 
                   <button type="submit" class="btn-add" :disabled="loading || isNameDuplicate">
                     <span v-if="loading" class="animate-spin">🌀</span>
-                    {{ isEditDoc ? 'Update' : 'Save' }}
+                    {{ isEditDoc ? t('Update') : t('Save') }}
                   </button>
                 </div>
               </form>
@@ -83,7 +76,6 @@
   </TransitionRoot>
 </template>
 
-
 <script>
 import { ref, watch, onMounted } from 'vue';
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue';
@@ -91,7 +83,7 @@ import { useDocument } from '@/composable/useDocument';
 import { getDocument } from '@/composable/getDocument';
 import debounce from 'lodash/debounce';
 import { useBranchStore } from '@/store/branchStore';
-
+import { useI18n } from "vue-i18n";
 export default {
   name: 'CategoryFormModal',
   components: { Dialog, DialogPanel, TransitionChild, TransitionRoot },
@@ -103,6 +95,7 @@ export default {
   emits: ['onClose'],
 
   setup(props, { emit }) {
+    const { t } = useI18n();
     const open = ref(props.visible);
     const name = ref('');
     const description = ref('');
@@ -217,7 +210,7 @@ export default {
 
     return {
       open, name, description, status, isNameInvalid, isNameDuplicate,
-      loading, handleSubmit, handleClose
+      loading, handleSubmit, handleClose,t
     };
   }
 };
