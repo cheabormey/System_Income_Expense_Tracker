@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./public/**/*.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
+
   theme: {
     extend: {
       colors: {
@@ -77,38 +78,38 @@ module.exports = {
       NotoSerifKhmer: ["Noto Serif Khmer", "serif"],
     },
   },
-plugins: [
-  function ({ addUtilities }) {
-    addUtilities({
-      ".scrollbar": {
-        "scrollbar-width": "thin",
-        "scrollbar-color": "#045B1B #f0fdf4", // thumb: DEFAULT / track: bg
-      },
-      ".scrollbar::-webkit-scrollbar": {
-        width: "8px",
-        height: "8px",
-      },
-      ".scrollbar::-webkit-scrollbar-track": {
-        background: "#f0fdf4", // primary.bg
-        borderRadius: "8px",
-      },
-      ".scrollbar::-webkit-scrollbar-thumb": {
-        backgroundColor: "#045B1B", // primary.DEFAULT
-        borderRadius: "8px",
-        border: "2px solid #f0fdf4", // padding effect
-      },
-      ".scrollbar::-webkit-scrollbar-thumb:hover": {
-        backgroundColor: "#5B9717", // primary.light or hover
-      },
-      ".scrollbar::-webkit-scrollbar-thumb:active": {
-        backgroundColor: "#034d16", // primary.dark
-      },
-    });
-  },
-],
+  plugins: [
+    function ({ addUtilities }) {
+      addUtilities({
+        ".scrollbar": {
+          "scrollbar-width": "thin",
+          "scrollbar-color": "#045B1B #f0fdf4", // thumb: DEFAULT / track: bg
+        },
+        ".scrollbar::-webkit-scrollbar": {
+          width: "8px",
+          height: "8px",
+        },
+        ".scrollbar::-webkit-scrollbar-track": {
+          background: "#f0fdf4", // primary.bg
+          borderRadius: "8px",
+        },
+        ".scrollbar::-webkit-scrollbar-thumb": {
+          backgroundColor: "#045B1B", // primary.DEFAULT
+          borderRadius: "8px",
+          border: "2px solid #f0fdf4", // padding effect
+        },
+        ".scrollbar::-webkit-scrollbar-thumb:hover": {
+          backgroundColor: "#5B9717", // primary.light or hover
+        },
+        ".scrollbar::-webkit-scrollbar-thumb:active": {
+          backgroundColor: "#034d16", // primary.dark
+        },
+      });
+    },
+    require("tailwindcss-animated"),
+  ],
 
-   
-    // purple
+  // purple
   //   plugins: [
   //   function ({ addUtilities }) {
   //     addUtilities({
@@ -159,7 +160,4 @@ plugins: [
   //     });
   //   },
   // ],
-
-
-  
 };
