@@ -1,39 +1,40 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router'
-import './assets/tailwind.css'
+import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router";
+import "./assets/tailwind.css";
 import i18n from "../src/i18n";
 /* PrimeVue */
-import PrimeVue from 'primevue/config'
-import Aura from '@primevue/themes/aura'
-import { definePreset } from '@primevue/themes'
-import 'primeicons/primeicons.css'
+import PrimeVue from "primevue/config";
+import Aura from "@primevue/themes/aura";
+import { definePreset } from "@primevue/themes";
+import "primeicons/primeicons.css";
+import ToastService from "primevue/toastservice";
 
 /* Pinia */
-import { createPinia } from 'pinia'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import { createPinia } from "pinia";
+import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 
 /* PrimeVue Components */
-import ToggleSwitch from 'primevue/toggleswitch'
+import ToggleSwitch from "primevue/toggleswitch";
 import Select from "primevue/select";
-import MultiSelect from 'primevue/multiselect';
+import MultiSelect from "primevue/multiselect";
 import InputText from "primevue/inputtext";
 import InputNumber from "primevue/inputnumber";
 import Textarea from "primevue/textarea";
 import Button from "primevue/button"; // ✅ IMPORT BUTTON
 
 /* Create Vue App */
-const app = createApp(App)
+const app = createApp(App);
 
 /* Pinia */
-const pinia = createPinia()
-pinia.use(piniaPluginPersistedstate)
+const pinia = createPinia();
+pinia.use(piniaPluginPersistedstate);
 
 /* PrimeVue Theme Preset */
 const MyPreset = definePreset(Aura, {
   semantic: {
     primary: {
-      50:  "#f2f8ea",
+      50: "#f2f8ea",
       100: "#e0efc8",
       200: "#c7e09d",
       300: "#add171",
@@ -46,7 +47,7 @@ const MyPreset = definePreset(Aura, {
       950: "#033f12",
     },
     secondary: {
-      50:  "#f7fde9",
+      50: "#f7fde9",
       100: "#ecf9c6",
       200: "#dcf28f",
       300: "#cceb57",
@@ -59,32 +60,33 @@ const MyPreset = definePreset(Aura, {
       950: "#172603",
     },
   },
-})
+});
 
 /* PrimeVue */
 app.use(PrimeVue, {
   theme: {
     preset: MyPreset, // ✅ USE YOUR CUSTOM PRESET
     options: {
-      prefix: 'p',
+      prefix: "p",
       darkModeSelector: false,
       cssLayer: false,
     },
   },
-})
+});
 
 /* Vue Router & Pinia */
-app.use(router)
-app.use(pinia)
+app.use(router);
+app.use(pinia);
 app.use(i18n);
 /* Global Components */
-app.component('ToggleSwitch', ToggleSwitch)
-app.component("Select", Select)
-app.component("MultiSelect", MultiSelect)
-app.component("InputText", InputText)
-app.component("InputNumber", InputNumber)
-app.component("Textarea", Textarea)
-app.component("Button", Button) // ✅ REGISTER BUTTON
+app.component("ToggleSwitch", ToggleSwitch);
+app.component("Select", Select);
+app.component("MultiSelect", MultiSelect);
+app.component("InputText", InputText);
+app.component("InputNumber", InputNumber);
+app.component("Textarea", Textarea);
+app.component("Button", Button); // ✅ REGISTER BUTTON
+app.use(ToastService);
 
 /* Mount App */
-app.mount('#app')
+app.mount("#app");

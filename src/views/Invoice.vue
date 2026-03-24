@@ -74,11 +74,7 @@
           </template>
         </Column>
 
-        <Column header="Customer" headerStyle="3 rem">
-          <template #body="slotProps">
-            {{ formatNameById(slotProps.data.customerId, customer) }}
-          </template>
-        </Column>
+        <Column field="customerId.username" header="Customer"></Column>
 
         <Column field="totalAmount" header="Total Amount">
           <template #body="slotProps">
@@ -100,7 +96,7 @@
 
         <Column header="Actions">
           <template #body="slotProps">
-            <!-- NEW: Quick Update Action to clear debt using updateDoc -->
+            <!-- Quick Update Action to clear debt using updateDoc -->
             <Button
               v-if="slotProps.data.isDebt"
               icon="pi pi-check-circle"
@@ -131,6 +127,9 @@
       @onClose="displayDialog = false"
       @refresh="fetchLedgerData"
     />
+
+    <!-- Toast component must be present in the template to show notifications -->
+    <Toast />
   </div>
 </template>
 
@@ -140,20 +139,20 @@ import { useRouter } from "vue-router";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
+import Toast from "primevue/toast";
 import InvoiceForm from "../components/Modal/InvoiceForm.vue";
 import { getDocument } from "@/composable/getDocument";
-// FIX: Imported the useDocument hook correctly with both deleteDoc and updateDoc
-import { useDocument } from "../composable/useDocument";
-import { formatNameById } from "@/helper/formateNameById";
+import { useDocument } from "@/composable/useDocument";
+import { useAppToast } from "@/helper/toastHelper";
 
 export default {
-  components: { DataTable, Column, Button, InvoiceForm },
+  components: { DataTable, Column, Button, Toast, InvoiceForm },
   setup() {
     const router = useRouter();
-    const { getDocs } = getDocument();
 
-    // Extracted both updateDoc and deleteDoc
+    const { getDocs } = getDocument();
     const { deleteDoc, updateDoc } = useDocument();
+    const { showToast } = useAppToast();
 
     const customer = ref([]);
     const entries = ref([]);
@@ -181,6 +180,14 @@ export default {
       return new Date(val).toLocaleDateString("en-GB");
     };
 
+    // Inline fallback for formatNameById just in case the helper isn't hooked up correctly
+    const getCustomerName = (customerId) => {
+      if (!customerId) return "";
+      if (typeof customerId === "object") return customerId.username || "";
+      const found = customer.value.find((c) => c._id === customerId);
+      return found ? found.username : customerId;
+    };
+
     const handleNavigateBack = () => router.push("/");
 
     const openNew = () => {
@@ -201,41 +208,42 @@ export default {
       displayDialog.value = true;
     };
 
-    // IMPLEMENTED: Example usage of updateDoc for a quick action
+    // Quick action to mark debt as paid
     const markAsPaid = async (id) => {
       if (
         confirm("Are you sure you want to mark this invoice as fully paid?")
       ) {
         try {
-          // Passes the { fields: {...} } structure required by your useDocument
           await updateDoc("Invoice", id, {
             fields: {
               isDebt: false,
               deptAmount: 0,
             },
           });
-          await fetchLedgerData(); // Refresh the table after updating
+          showToast("update", "Invoice marked as paid.");
+          await fetchLedgerData();
         } catch (error) {
-          alert("Failed to update the invoice.");
           console.error(error);
+          showToast("error", "Failed to update the invoice.");
         }
       }
     };
 
-    // IMPLEMENTED: Single delete function
+    // Single delete function
     const deleteEntry = async (id) => {
       if (confirm("Are you sure you want to delete this invoice?")) {
         try {
           await deleteDoc("Invoice", id);
-          await fetchLedgerData(); // Refresh table data
+          showToast("delete", "Invoice deleted successfully.");
+          await fetchLedgerData();
         } catch (error) {
-          alert("Failed to delete the invoice.");
           console.error(error);
+          showToast("error", "Failed to delete the invoice.");
         }
       }
     };
 
-    // NEW: Multiple delete function
+    // Multiple delete function
     const deleteSelectedEntries = async () => {
       if (!selectedEntries.value || selectedEntries.value.length === 0) return;
 
@@ -245,18 +253,17 @@ export default {
         )
       ) {
         try {
-          // Creates an array of delete promises and runs them concurrently
           const deletePromises = selectedEntries.value.map((entry) =>
             deleteDoc("Invoice", entry._id),
           );
           await Promise.all(deletePromises);
 
-          // Clear selections and refresh
           selectedEntries.value = [];
+          showToast("delete", "Selected invoices deleted successfully.");
           await fetchLedgerData();
         } catch (error) {
-          alert("An error occurred while trying to delete selected entries.");
           console.error(error);
+          showToast("error", "Failed to delete selected entries.");
         }
       }
     };
@@ -355,10 +362,16 @@ export default {
             @media print {
               body { padding: 0; }
               .receipt-wrapper { 
-                page-break-after: always; 
-                margin-bottom: 0; 
-                border: none; 
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+                padding-bottom: 20px;
+                border: none;
+                // border-bottom: 2px dashed #000;
                 max-width: 100%; 
+              }
+              .receipt-wrapper:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
               }
             }
           </style>
@@ -396,8 +409,7 @@ export default {
           ? entry._id.substring(0, 5).toUpperCase()
           : "00000";
 
-        // Reused formatNameById helper directly in print
-        const customerName = formatNameById(entry.customerId, customer.value);
+        const customerName = getCustomerName(entry.customerId);
         const headerText = `${entryId} ${customerName} ${dateStr}`;
 
         printContent += `
@@ -407,7 +419,7 @@ export default {
               <table>
                 <thead>
                   <tr>
-                    <th>ល្វាត</th>
+                    <th>ល្ងាច</th>
                     <th>លេខ កូដ</th>
                     <th>2លេខ</th>
                     <th>3លេខ</th>
@@ -455,7 +467,9 @@ export default {
           <script>
             window.onload = () => {
               window.print();
-              setTimeout(() => { window.close(); }, 500);
+            }
+            window.onafterprint = () => {
+              window.close();
             }
           <\/script>
         </body>
@@ -486,8 +500,6 @@ export default {
       fetchLedgerData,
       printSelectedEntries,
       handleNavigateBack,
-      customer,
-      formatNameById,
     };
   },
 };

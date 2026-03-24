@@ -26,7 +26,9 @@
         </div>
 
         <div>
-          <label class="form-label font-semibold mb-1 block">Customer</label>
+          <label class="form-label font-semibold mb-1 block"
+            >Customer <span class="required"></span
+          ></label>
           <Dropdown
             v-model="form.customerId"
             :options="customers"
@@ -34,17 +36,35 @@
             optionValue="_id"
             placeholder="Select Customer"
             class="w-full"
+            :class="{ 'p-invalid border-red-500': errors.customerId }"
           />
+          <Message
+            v-if="errors.customerId"
+            severity="error"
+            class="mt-1 m-0 p-2"
+            :closable="false"
+            >Customer is required</Message
+          >
         </div>
 
         <div>
-          <label class="form-label font-semibold mb-1 block">Play Date</label>
+          <label class="form-label font-semibold mb-1 block"
+            >Play Date <span class="required"></span
+          ></label>
           <Calendar
             v-model="form.playDate"
             dateFormat="yy-mm-dd"
             showIcon
             class="w-full"
+            :class="{ 'p-invalid border-red-500': errors.playDate }"
           />
+          <Message
+            v-if="errors.playDate"
+            severity="error"
+            class="mt-1 m-0 p-2"
+            :closable="false"
+            >Play Date is required</Message
+          >
         </div>
       </section>
 
@@ -167,8 +187,11 @@ import InputNumber from "primevue/inputnumber";
 import Checkbox from "primevue/checkbox";
 import Textarea from "primevue/textarea";
 import Button from "primevue/button";
+import Message from "primevue/message";
 import { useDocument } from "@/composable/useDocument";
 import { getDocument } from "@/composable/getDocument";
+// Import the Toast Composable
+import { useAppToast } from "@/helper/toastHelper";
 
 const props = defineProps({
   visible: Boolean,
@@ -179,10 +202,16 @@ const props = defineProps({
 const emit = defineEmits(["onClose", "refresh"]);
 
 const { insertDoc, updateDoc } = useDocument();
+const { showToast } = useAppToast();
 
 const branches = ref([]);
 const customers = ref([]);
 const categories = ref([]);
+
+const errors = ref({
+  customerId: false,
+  playDate: false,
+});
 
 const form = ref({
   branchId: null,
@@ -246,9 +275,58 @@ const removePlay = (index) => {
   form.value.lotteryPlays.splice(index, 1);
 };
 
-const handleClose = () => emit("onClose");
+// Validation Helper Function
+const validateForm = () => {
+  let isValid = true;
+  errors.value = {
+    customerId: false,
+    playDate: false,
+  };
+
+  if (!form.value.customerId) {
+    errors.value.customerId = true;
+    isValid = false;
+  }
+  if (!form.value.playDate) {
+    errors.value.playDate = true;
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+const handleClose = () => {
+  // Reset Form
+  form.value = {
+    branchId: null,
+    customerId: null,
+    playDate: null,
+    lotteryPlays: [],
+    finalTwoAmount: 0,
+    finalThreeAmount: 0,
+    deptAmount: 0,
+    totalAmount: 0,
+    description: "",
+    isChiefLotteryWin: false,
+    isDebt: false,
+    isUnchanged: false,
+  };
+
+  // Reset Errors
+  errors.value = {
+    customerId: false,
+    playDate: false,
+  };
+
+  emit("onClose");
+};
 
 const saveInvoice = async () => {
+  // Call validation before proceeding
+  if (!validateForm()) {
+    return;
+  }
+
   const payload = {
     fields: {
       ...form.value,
@@ -258,13 +336,20 @@ const saveInvoice = async () => {
     },
   };
 
-  if (props.isEditDoc && props.doc?._id) {
-    await updateDoc("Invoice", props.doc._id, payload);
-  } else {
-    await insertDoc("Invoice", payload);
-  }
+  try {
+    if (props.isEditDoc && props.doc?._id) {
+      await updateDoc("Invoice", props.doc._id, payload);
+      showToast("update"); // Emit update toast
+    } else {
+      await insertDoc("Invoice", payload);
+      showToast("create"); // Emit create toast
+    }
 
-  emit("refresh");
-  handleClose();
+    emit("refresh");
+    handleClose();
+  } catch (error) {
+    console.error("Failed to save invoice:", error);
+    showToast("error", "Failed to save invoice. Please try again."); // Emit error toast on failure
+  }
 };
 </script>
