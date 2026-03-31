@@ -53,7 +53,128 @@
   </div>
 </template>
 
-<script setup>
-defineProps(['items', 'isLoading']);
-defineEmits(['onEdit', 'onDelete']);
+<script>
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { ChevronLeftIcon, PlusIcon } from '@heroicons/vue/24/outline';
+import UserFormModal from '../components/Modal/UserForm.vue';
+import UserCard from '@/mobile/UserCard.vue';
+import Pagination from '@/components/Pagination.vue';
+import DeleteConfirmation from '@/components/DeleteComfirmation.vue';
+
+export default {
+  name: 'UserPage',
+
+  components: {
+    ChevronLeftIcon,
+    PlusIcon,
+    UserFormModal,
+    UserCard,
+    Pagination,
+    DeleteConfirmation
+  },
+
+  setup() {
+    const router = useRouter();
+
+    const userData = ref([]);
+    const isLoading = ref(false);
+    const isMobileScreen = ref(false);
+    const searchQuery = ref('');
+    const pageSize = ref(50);
+    const optionPageSize = [50, 100, 200];
+    const showFormModal = ref(false);
+    const isEditDoc = ref(false);
+    const selectedUser = ref(null);
+    const showDeleteModal = ref(false);
+    const deleteId = ref(null);
+    const currentPage = ref(1);
+    const isLastRecordOnPage = ref(false);
+
+    const handleCheckScreenSize = () => {
+      isMobileScreen.value = window.innerWidth < 768;
+    };
+
+    onMounted(() => {
+      handleCheckScreenSize();
+      window.addEventListener('resize', handleCheckScreenSize);
+    });
+
+    onBeforeUnmount(() => {
+      window.removeEventListener('resize', handleCheckScreenSize);
+    });
+
+    const openAddForm = () => {
+      isEditDoc.value = false;
+      selectedUser.value = null;
+      showFormModal.value = true;
+    };
+
+    const openEditForm = (user) => {
+      isEditDoc.value = true;
+      selectedUser.value = user;
+      showFormModal.value = true;
+    };
+
+    const confirmDelete = (user) => {
+      deleteId.value = user._id;
+      selectedUser.value = user;
+      showDeleteModal.value = true;
+    };
+
+    const closeForm = () => {
+      showFormModal.value = false;
+    };
+
+    const handleCloseDelete = () => {
+      showDeleteModal.value = false;
+    };
+
+    const handleNavigateBack = () => {
+      router.push('/');
+    };
+
+    const handlePaginationData = (items) => {
+      userData.value = items;
+      isLoading.value = false;
+    };
+
+    const handleIsLoading = (status) => {
+      isLoading.value = status;
+    };
+
+    const handleIsLastRecord = (status) => {
+      isLastRecordOnPage.value = status;
+    };
+
+    watch(searchQuery, () => {
+      currentPage.value = 1;
+    });
+
+    return {
+      userData,
+      isLoading,
+      isMobileScreen,
+      searchQuery,
+      pageSize,
+      optionPageSize,
+      showFormModal,
+      isEditDoc,
+      selectedUser,
+      showDeleteModal,
+      deleteId,
+      currentPage,
+      isLastRecordOnPage,
+      openAddForm,
+      openEditForm,
+      confirmDelete,
+      closeForm,
+      handleCloseDelete,
+      handleNavigateBack,
+      handlePaginationData,
+      handleIsLoading,
+      handleIsLastRecord
+    };
+  }
+};
 </script>
