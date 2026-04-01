@@ -1,3 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+Khmer:wght@100..900&display=swap");
+
+* {
+  font-family: "Noto Serif Khmer", serif;
+}
+
 @tailwind base;
 
 @tailwind components;
