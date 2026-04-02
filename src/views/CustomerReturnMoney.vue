@@ -27,12 +27,12 @@
           </div>
           <div class="w-full md:w-96">
             <span class="text-sm font-medium text-gray-700 mb-1 block"
-              >Search Customer</span
+              >Search Customer Name or ID</span
             >
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Search by customer ID..."
+              placeholder="Search by name, return ID, or customer ID..."
               class="w-full border rounded-md px-4 py-2 text-sm focus:ring-2 focus:ring-[#5B9717] outline-none"
             />
           </div>
@@ -132,9 +132,13 @@
 
     <div class="mt-5">
       <Pagination
+        :key="refreshKey"
         :currentPage="currentPage"
         :limitedPerPage="pageSize"
-        :searchQuery="searchQuery"
+        :searchQuery="resolvedSearchQuery"
+        searchFields="customerId,_id"
+        sortField="returnDate"
+        sortOrder="desc"
         collectionName="CustomerReturnMoney"
         @onEmitDataFromPagination="tableData = $event"
         @onEmitIsLoading="isLoading = $event"
@@ -157,13 +161,12 @@
       @onSuccess="handleDeleteSuccess"
     />
 
-    <!-- Added Toast Component -->
     <Toast />
   </div>
 </template>
 
 <script>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { ChevronLeftIcon, PlusIcon } from "@heroicons/vue/24/outline";
 import Pagination from "@/components/Pagination.vue";
@@ -190,25 +193,59 @@ export default {
   setup() {
     const router = useRouter();
     const { getDocs } = getDocument();
-    const { showToast } = useAppToast(); // Initialize toast helper
+    const { showToast } = useAppToast();
 
     const tableData = ref([]);
-    const customers = ref([]); // Added to store customers
+    const customers = ref([]);
     const isLoading = ref(false);
+
+    // Pagination & Search States
     const searchQuery = ref("");
+    const resolvedSearchQuery = ref("");
     const pageSize = ref(50);
     const optionPageSize = ref([50, 100, 200]);
-    const isMobileScreen = ref(false);
+    const currentPage = ref(1);
+    const refreshKey = ref(0);
+    let searchTimeout = null;
 
+    const isMobileScreen = ref(false);
     const showFormModal = ref(false);
     const isEditDoc = ref(false);
     const selectedDoc = ref(null);
     const showDeleteModal = ref(false);
     const deleteId = ref(null);
 
+    // ========================================================
+    // Debounced Watcher for Live Search
+    // ========================================================
+    watch(searchQuery, (newVal) => {
+      clearTimeout(searchTimeout);
+
+      searchTimeout = setTimeout(() => {
+        const query = newVal.trim();
+
+        if (!query) {
+          resolvedSearchQuery.value = "";
+        } else {
+          // 1. Try to find a matching customer by their name
+          const matchedCustomer = customers.value.find((c) =>
+            c.username.toLowerCase().includes(query.toLowerCase()),
+          );
+
+          // 2. If a name matches, send their ID. Otherwise, send raw query
+          resolvedSearchQuery.value = matchedCustomer
+            ? matchedCustomer._id
+            : query;
+        }
+
+        // 3. Reset pagination to Page 1 and force an API refresh
+        currentPage.value = 1;
+        refreshKey.value += 1;
+      }, 400); // 400ms delay to wait for user to stop typing
+    });
+
     const checkSize = () => (isMobileScreen.value = window.innerWidth < 768);
 
-    // Fetch customers to use for name formatting
     const fetchCustomers = async () => {
       try {
         const res = await getDocs("Customer");
@@ -223,27 +260,37 @@ export default {
     onMounted(() => {
       checkSize();
       window.addEventListener("resize", checkSize);
-      fetchCustomers(); // Call fetch on mount
+      fetchCustomers();
     });
 
     onBeforeUnmount(() => window.removeEventListener("resize", checkSize));
+
+    const triggerRefresh = () => {
+      refreshKey.value += 1;
+    };
 
     const openAddForm = () => {
       isEditDoc.value = false;
       selectedDoc.value = null;
       showFormModal.value = true;
     };
+
     const openEditForm = (doc) => {
       isEditDoc.value = true;
       selectedDoc.value = doc;
       showFormModal.value = true;
     };
 
-    // Close form and show the correct toast notification
     const closeForm = (action) => {
       showFormModal.value = false;
-      if (action === "add") showToast("create");
-      if (action === "update") showToast("update");
+      if (action === "add") {
+        showToast("create");
+        triggerRefresh();
+      }
+      if (action === "update") {
+        showToast("update");
+        triggerRefresh();
+      }
     };
 
     const confirmDelete = (item) => {
@@ -251,10 +298,10 @@ export default {
       showDeleteModal.value = true;
     };
 
-    // Handle delete success from the DeleteConfirmation component
     const handleDeleteSuccess = () => {
       showDeleteModal.value = false;
       showToast("delete");
+      triggerRefresh();
     };
 
     return {
@@ -262,8 +309,11 @@ export default {
       tableData,
       isLoading,
       searchQuery,
+      resolvedSearchQuery,
       pageSize,
       optionPageSize,
+      currentPage,
+      refreshKey,
       isMobileScreen,
       showFormModal,
       isEditDoc,
@@ -276,10 +326,9 @@ export default {
       confirmDelete,
       handleDeleteSuccess,
       formatDate,
-      currentPage: ref(1),
       customers,
       formatNameById,
-      formatKHR, // Exposed to template
+      formatKHR,
     };
   },
 };
