@@ -84,34 +84,42 @@
             :key="item._id"
             :class="index % 2 === 0 ? 'bg-white' : 'bg-[#f0fdf4]'"
           >
-            <td class="px-6 py-4 font-medium">
-              {{ item.customerId || "N/A" }}
+            <!-- Updated to display Customer Name -->
+            <td class="px-6 py-4 font-medium text-gray-800">
+              {{ getCustomerName(item.customerId) }}
             </td>
+
+            <!-- Updated to format Currency properly -->
             <td class="px-6 py-4 text-rose-600 font-bold">
-              {{
-                item.totalDebt?.toLocaleString("en-US", {
-                  maximumFractionDigits: 0,
-                })
-              }}
+              {{ formatCurrency(item.totalDebt) }}
             </td>
 
             <td class="px-6 py-4 italic text-sm text-gray-500">
-              {{ item.invoiceIds?.length || 0 }} Invoices
+              <span
+                class="bg-blue-100 text-blue-700 px-2 py-1 rounded font-semibold"
+              >
+                {{ item.invoiceIds?.length || 0 }} Invoices
+              </span>
             </td>
             <td class="px-6 py-4">{{ formatDate(item.createdAt) }}</td>
             <td class="px-6 py-4 text-center">
               <button
                 @click="openEditForm(item)"
-                class="text-[#045B1B] p-2 hover:bg-gray-100 rounded-lg"
+                class="text-[#045B1B] p-2 hover:bg-green-50 rounded-lg mx-1 transition-colors"
               >
                 <i class="pi pi-pencil" />
               </button>
               <button
                 @click="confirmDelete(item)"
-                class="text-red-600 p-2 hover:bg-red-50 rounded-lg"
+                class="text-red-600 p-2 hover:bg-red-50 rounded-lg mx-1 transition-colors"
               >
                 <i class="pi pi-trash" />
               </button>
+            </td>
+          </tr>
+          <tr v-if="tableData.length === 0 && !isLoading">
+            <td colspan="5" class="px-6 py-10 text-center text-gray-500 italic">
+              No reimbursement records found.
             </td>
           </tr>
         </tbody>
@@ -161,6 +169,7 @@ import DeleteConfirmation from "@/components/DeleteComfirmation.vue";
 import CustomerReimbursementForm from "@/components/Modal/CustomerReimbursementForm.vue";
 import CustomerReimbursementCard from "@/mobile/CustomerReimbursementCard.vue";
 import formatDate from "@/composable/formatDate";
+import { getDocument } from "@/composable/getDocument"; // Added to fetch customers
 
 export default {
   components: {
@@ -173,6 +182,9 @@ export default {
   },
   setup() {
     const router = useRouter();
+    const { getDocs } = getDocument(); // Initialized document fetcher
+
+    const customers = ref([]); // Store customer data
     const tableData = ref([]);
     const isLoading = ref(false);
     const searchQuery = ref("");
@@ -186,11 +198,26 @@ export default {
     const showDeleteModal = ref(false);
     const deleteId = ref(null);
 
+    // Fetch customer data for name mapping
+    const fetchCustomers = async () => {
+      try {
+        const res = await getDocs("Customer");
+        if (res?.data) {
+          customers.value = res.data;
+        }
+      } catch (err) {
+        console.error("Failed to fetch customers:", err);
+      }
+    };
+
     const checkSize = () => (isMobileScreen.value = window.innerWidth < 768);
+
     onMounted(() => {
       checkSize();
       window.addEventListener("resize", checkSize);
+      fetchCustomers(); // Fetch customers on mount
     });
+
     onBeforeUnmount(() => window.removeEventListener("resize", checkSize));
 
     const handlePaginationData = (data) => (tableData.value = data || []);
@@ -208,6 +235,21 @@ export default {
     const confirmDelete = (doc) => {
       deleteId.value = doc._id;
       showDeleteModal.value = true;
+    };
+
+    // Helper function to map Customer ID to Username
+    const getCustomerName = (id) => {
+      if (!id) return "N/A";
+      const customer = customers.value.find((c) => c._id === id);
+      return customer ? customer.username : id;
+    };
+
+    // Helper function for currency formatting
+    const formatCurrency = (val) => {
+      if (val === null || val === undefined) return "0 ៛";
+      return (
+        Number(val).toLocaleString("en-US", { maximumFractionDigits: 0 }) + " ៛"
+      );
     };
 
     return {
@@ -229,6 +271,8 @@ export default {
       closeForm,
       confirmDelete,
       formatDate,
+      getCustomerName,
+      formatCurrency,
     };
   },
 };

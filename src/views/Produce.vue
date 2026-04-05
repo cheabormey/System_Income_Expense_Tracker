@@ -16,7 +16,9 @@
       <h1 class="text-2xl md:text-3xl font-bold text-[#045B1B] mb-6">
         Products
       </h1>
-
+      <pre>
+        {{ productData }}
+      </pre>
       <div
         v-if="!isMobileScreen"
         class="hidden md:flex flex-wrap items-end justify-between gap-4"

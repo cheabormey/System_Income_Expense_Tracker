@@ -8,7 +8,7 @@
     "
     modal
     :header="isEditDoc ? 'Edit Invoice' : 'New Invoice'"
-    class="w-[95vw] md:w-[70vw] lg:w-[55vw]"
+    class="w-[95vw] md:w-[80vw] lg:w-[65vw]"
   >
     <div class="space-y-6">
       <!-- BASIC INFO -->
@@ -27,8 +27,8 @@
 
         <div>
           <label class="form-label font-semibold mb-1 block"
-            >Customer <span class="required"></span
-          ></label>
+            >Customer <span class="text-red-500">*</span></label
+          >
           <Dropdown
             v-model="form.customerId"
             :options="customers"
@@ -49,8 +49,8 @@
 
         <div>
           <label class="form-label font-semibold mb-1 block"
-            >Play Date <span class="required"></span
-          ></label>
+            >Play Date <span class="text-red-500">*</span></label
+          >
           <Calendar
             v-model="form.playDate"
             dateFormat="yy-mm-dd"
@@ -95,13 +95,20 @@
             />
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Dropdown
-              v-model="play.category"
+              v-model="play.categoryId"
               :options="categories"
               optionLabel="name"
               optionValue="_id"
               placeholder="Category"
+            />
+            <Dropdown
+              v-model="play.productId"
+              :options="products"
+              optionLabel="name"
+              optionValue="_id"
+              placeholder="Product"
             />
             <InputText
               v-model="play.title"
@@ -110,23 +117,38 @@
             />
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="flex items-center gap-3">
-              <InputNumber
-                v-model="play.winTwoNumber"
-                placeholder="2D Win Number"
-                class="flex-1"
-              />
-              <Checkbox v-model="play.isTwoNumber" binary /> <span>2D</span>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium">2D Win Type</label>
+              <div class="flex items-center gap-2">
+                <InputNumber
+                  v-model="play.winTwoNumberType"
+                  placeholder="2D Win Number"
+                  class="flex-1"
+                />
+                <Checkbox v-model="play.isTwoNumber" binary />
+              </div>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium">3D Win Type</label>
+              <div class="flex items-center gap-2">
+                <InputNumber
+                  v-model="play.winThreeNumberType"
+                  placeholder="3D Win Number"
+                  class="flex-1"
+                />
+                <Checkbox v-model="play.isThreeNumber" binary />
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium">Total Amount</label>
               <InputNumber
-                v-model="play.winThreeNumber"
-                placeholder="3D Win Number"
-                class="flex-1"
+                v-model="play.totalAmount"
+                placeholder="Amount"
+                mode="decimal"
               />
-              <Checkbox v-model="play.isThreeNumber" binary /> <span>3D</span>
             </div>
           </div>
         </div>
@@ -136,22 +158,46 @@
       <section
         class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-100 p-4 rounded-lg"
       >
-        <InputNumber
-          v-model="form.finalTwoAmount"
-          disabled
-          placeholder="Final 2D"
-        />
-        <InputNumber
-          v-model="form.finalThreeAmount"
-          disabled
-          placeholder="Final 3D"
-        />
-        <InputNumber v-model="form.deptAmount" disabled placeholder="Debt" />
-        <InputNumber
-          v-model="form.totalAmount"
-          disabled
-          placeholder="Grand Total"
-        />
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold mb-1 text-gray-600"
+            >Final 2D Amount</label
+          >
+          <InputNumber
+            v-model="form.finalTwoAmount"
+            placeholder="0"
+            mode="decimal"
+          />
+        </div>
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold mb-1 text-gray-600"
+            >Final 3D Amount</label
+          >
+          <InputNumber
+            v-model="form.finalThreeAmount"
+            placeholder="0"
+            mode="decimal"
+          />
+        </div>
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold mb-1 text-gray-600"
+            >Debt Amount</label
+          >
+          <InputNumber
+            v-model="form.debtAmount"
+            placeholder="0"
+            mode="decimal"
+          />
+        </div>
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold mb-1 text-gray-600"
+            >Grand Total Amount</label
+          >
+          <InputNumber
+            v-model="form.totalAmount"
+            placeholder="0"
+            mode="decimal"
+          />
+        </div>
       </section>
 
       <!-- DESCRIPTION -->
@@ -161,18 +207,46 @@
       </section>
 
       <!-- FLAGS -->
-      <section class="flex flex-wrap gap-6 mt-2">
-        <div>
-          <Checkbox v-model="form.isChiefLotteryWin" binary /> Chief Win
+      <section
+        class="flex flex-wrap gap-6 mt-2 bg-blue-50 p-4 rounded-lg border border-blue-100"
+      >
+        <div
+          class="flex items-center gap-2 cursor-pointer"
+          title="Check if the Chief won this bet"
+        >
+          <Checkbox
+            v-model="form.isChiefLotteryWin"
+            binary
+            inputId="chiefWin"
+          />
+          <label for="chiefWin" class="font-medium text-[#045B1B]"
+            >Chief Lottery Win</label
+          >
         </div>
-        <div><Checkbox v-model="form.isDebt" binary /> Debt</div>
-        <div><Checkbox v-model="form.isUnchanged" binary /> Unchanged</div>
+        <div class="flex items-center gap-2 cursor-pointer">
+          <Checkbox v-model="form.isDebt" binary inputId="isDebt" />
+          <label for="isDebt" class="font-medium">Is Debt</label>
+        </div>
+        <div
+          class="flex items-center gap-2 cursor-pointer"
+          title="Check this to prevent deletion and record to history"
+        >
+          <Checkbox v-model="form.isUnchanged" binary inputId="isUnchanged" />
+          <label for="isUnchanged" class="font-medium text-red-600"
+            >Lock Invoice (Unchanged)</label
+          >
+        </div>
       </section>
     </div>
 
     <template #footer>
       <Button label="Cancel" text @click="handleClose" />
-      <Button label="Save" icon="pi pi-check" @click="saveInvoice" />
+      <Button
+        label="Save"
+        icon="pi pi-check"
+        :loading="loading"
+        @click="saveInvoice"
+      />
     </template>
   </Dialog>
 </template>
@@ -190,8 +264,8 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 import { useDocument } from "@/composable/useDocument";
 import { getDocument } from "@/composable/getDocument";
-// Import the Toast Composable
 import { useAppToast } from "@/helper/toastHelper";
+import { useBranchStore } from "@/store/branchStore";
 
 const props = defineProps({
   visible: Boolean,
@@ -202,16 +276,17 @@ const props = defineProps({
 const emit = defineEmits(["onClose", "refresh"]);
 
 const { insertDoc, updateDoc } = useDocument();
+const { getDocs } = getDocument();
 const { showToast } = useAppToast();
+const branchStore = useBranchStore();
+const loading = ref(false);
 
 const branches = ref([]);
 const customers = ref([]);
 const categories = ref([]);
+const products = ref([]);
 
-const errors = ref({
-  customerId: false,
-  playDate: false,
-});
+const errors = ref({ customerId: false, playDate: false });
 
 const form = ref({
   branchId: null,
@@ -220,7 +295,7 @@ const form = ref({
   lotteryPlays: [],
   finalTwoAmount: 0,
   finalThreeAmount: 0,
-  deptAmount: 0,
+  debtAmount: 0,
   totalAmount: 0,
   description: "",
   isChiefLotteryWin: false,
@@ -230,14 +305,18 @@ const form = ref({
 
 const fetchDropdownData = async () => {
   try {
-    const [branchRes, customerRes, categoryRes] = await Promise.all([
-      getDocument().getDocs("Branch"),
-      getDocument().getDocs("Customer"),
-      getDocument().getDocs("Category"),
-    ]);
+    const [branchRes, customerRes, categoryRes, productRes] = await Promise.all(
+      [
+        getDocs("Branch"),
+        getDocs("Customer"),
+        getDocs("Category"),
+        getDocs("Product"),
+      ],
+    );
     branches.value = branchRes.data || [];
     customers.value = customerRes.data || [];
     categories.value = categoryRes.data || [];
+    products.value = productRes.data || [];
   } catch (err) {
     console.error(err);
   }
@@ -251,10 +330,13 @@ watch(
       if (props.isEditDoc && props.doc) {
         form.value = {
           ...props.doc,
-          lotteryPlays: Object.values(props.doc.lotteryPlays || {}),
+          lotteryPlays: Array.isArray(props.doc.lotteryPlays)
+            ? [...props.doc.lotteryPlays]
+            : Object.values(props.doc.lotteryPlays || {}),
         };
       } else {
         form.value.lotteryPlays = [];
+        form.value.branchId = branchStore.branchId;
       }
     }
   },
@@ -262,27 +344,22 @@ watch(
 
 const addPlay = () => {
   form.value.lotteryPlays.push({
-    category: null,
+    categoryId: null,
+    productId: null,
     title: "",
-    winTwoNumber: 0,
-    winThreeNumber: 0,
+    winTwoNumberType: null,
+    winThreeNumberType: null,
     isTwoNumber: false,
     isThreeNumber: false,
+    totalAmount: null,
   });
 };
 
-const removePlay = (index) => {
-  form.value.lotteryPlays.splice(index, 1);
-};
+const removePlay = (index) => form.value.lotteryPlays.splice(index, 1);
 
-// Validation Helper Function
 const validateForm = () => {
   let isValid = true;
-  errors.value = {
-    customerId: false,
-    playDate: false,
-  };
-
+  errors.value = { customerId: false, playDate: false };
   if (!form.value.customerId) {
     errors.value.customerId = true;
     isValid = false;
@@ -291,65 +368,129 @@ const validateForm = () => {
     errors.value.playDate = true;
     isValid = false;
   }
-
   return isValid;
 };
 
 const handleClose = () => {
-  // Reset Form
   form.value = {
-    branchId: null,
+    branchId: branchStore.branchId,
     customerId: null,
     playDate: null,
     lotteryPlays: [],
     finalTwoAmount: 0,
     finalThreeAmount: 0,
-    deptAmount: 0,
+    debtAmount: 0,
     totalAmount: 0,
     description: "",
     isChiefLotteryWin: false,
     isDebt: false,
     isUnchanged: false,
   };
-
-  // Reset Errors
-  errors.value = {
-    customerId: false,
-    playDate: false,
-  };
-
+  errors.value = { customerId: false, playDate: false };
   emit("onClose");
 };
 
 const saveInvoice = async () => {
-  // Call validation before proceeding
-  if (!validateForm()) {
-    return;
-  }
+  if (!validateForm()) return;
+  loading.value = true;
+
+  const cleanFields = { ...form.value };
+
+  // Transform lotteryPlays array back to Map object for MongoDB Schema compliance
+  cleanFields.lotteryPlays = Object.fromEntries(
+    form.value.lotteryPlays.map((p, i) => [`play_${i}`, p]),
+  );
+
+  delete cleanFields._id;
+  delete cleanFields.__v;
+  delete cleanFields.createdAt;
+  delete cleanFields.createdBy;
 
   const payload = {
     fields: {
-      ...form.value,
-      lotteryPlays: Object.fromEntries(
-        form.value.lotteryPlays.map((p, i) => [`play_${i}`, p]),
-      ),
+      ...cleanFields,
+      updatedAt: new Date(),
+      updatedBy: branchStore.userId,
     },
   };
+  if (!props.isEditDoc) {
+    payload.fields.createdAt = new Date();
+    payload.fields.createdBy = branchStore.userId;
+  }
 
   try {
+    let savedInvoiceId = null;
+
+    // 1. Save the Invoice
     if (props.isEditDoc && props.doc?._id) {
       await updateDoc("Invoice", props.doc._id, payload);
-      showToast("update"); // Emit update toast
+      savedInvoiceId = props.doc._id;
+      showToast("update", "Invoice updated successfully.");
     } else {
-      await insertDoc("Invoice", payload);
-      showToast("create"); // Emit create toast
+      const res = await insertDoc("Invoice", payload);
+      savedInvoiceId = res?._id || res?.data?._id || res?.id;
+      showToast("create", "Invoice created successfully.");
+    }
+
+    // 2. SCHEMA RULE: isUnchanged creates a duplicate backup in InvoiceRecord
+    if (form.value.isUnchanged) {
+      await insertDoc("InvoiceRecord", {
+        fields: { ...payload.fields, originalInvoiceId: savedInvoiceId },
+      });
+    }
+
+    // 3. SCHEMA RULE: isChiefLotteryWin ADDS (+) to LotteryChiefBalance (Wallet)
+    if (form.value.isChiefLotteryWin) {
+      const balanceRes = await getDocs("LotteryChiefBalance");
+      let activeBalance = balanceRes.data?.find(
+        (b) => b.branchId === form.value.branchId && b.status === true,
+      );
+
+      // Calculate difference if editing. If new, the difference is just the new totalAmount.
+      const oldTotal =
+        props.isEditDoc && props.doc.isChiefLotteryWin
+          ? Number(props.doc.totalAmount || 0)
+          : 0;
+      const newTotal = Number(form.value.totalAmount || 0);
+      const addedValue = newTotal - oldTotal;
+
+      if (activeBalance) {
+        let updatedInvoiceIds = Array.isArray(activeBalance.invoiceIds)
+          ? [...activeBalance.invoiceIds]
+          : [];
+        if (!updatedInvoiceIds.includes(savedInvoiceId))
+          updatedInvoiceIds.push(savedInvoiceId);
+
+        await updateDoc("LotteryChiefBalance", activeBalance._id, {
+          fields: {
+            amount: Number(activeBalance.amount || 0) + addedValue, // Math: Add to Wallet
+            invoiceIds: updatedInvoiceIds,
+            updatedAt: new Date(),
+            updatedBy: branchStore.userId,
+          },
+        });
+        console.log(`Chief Balance increased by ${addedValue} ៛`);
+      } else {
+        await insertDoc("LotteryChiefBalance", {
+          fields: {
+            branchId: form.value.branchId,
+            amount: newTotal,
+            invoiceIds: [savedInvoiceId],
+            status: true,
+            createdAt: new Date(),
+            createdBy: branchStore.userId,
+          },
+        });
+      }
     }
 
     emit("refresh");
     handleClose();
   } catch (error) {
     console.error("Failed to save invoice:", error);
-    showToast("error", "Failed to save invoice. Please try again."); // Emit error toast on failure
+    showToast("error", "Failed to save invoice. Please try again.");
+  } finally {
+    loading.value = false;
   }
 };
 </script>

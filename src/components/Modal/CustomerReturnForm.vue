@@ -1,7 +1,6 @@
 <template>
-  <TransitionRoot as="template" :show="Boolean(visible)">
+  <TransitionRoot appear as="template" :show="Boolean(visible)">
     <Dialog as="div" class="relative z-50" @close="handleClose">
-      <!-- Backdrop Transition -->
       <TransitionChild
         as="template"
         enter="ease-out duration-300"
@@ -20,7 +19,6 @@
         <div
           class="flex min-h-full items-center justify-center p-4 text-center sm:p-0"
         >
-          <!-- Panel Transition -->
           <TransitionChild
             as="template"
             enter="ease-out duration-300"
@@ -31,12 +29,15 @@
             leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
             <DialogPanel
-              class="w-full max-w-md transform overflow-visible bg-white rounded-2xl shadow-xl border-2 border-[#82B215] text-left align-middle transition-all"
+              class="w-full max-w-lg transform overflow-visible bg-white rounded-2xl shadow-xl border-2 border-[#82B215] text-left align-middle transition-all"
             >
-              <!-- Header -->
-              <div class="flex justify-between items-center p-5 border-b">
+              <div class="flex items-center justify-between p-5 border-b">
                 <h3 class="text-xl font-bold text-[#045B1B]">
-                  {{ isEditDoc ? "Edit Return" : "New Return Money" }}
+                  {{
+                    isEditDoc
+                      ? "Edit Return Money"
+                      : "New Return Money (Payment)"
+                  }}
                 </h3>
                 <i
                   class="pi pi-times cursor-pointer text-gray-400 hover:text-red-500 transition-colors"
@@ -44,13 +45,12 @@
                 ></i>
               </div>
 
-              <!-- Form -->
-              <form @submit.prevent="handleSubmit" class="p-6 space-y-4">
+              <form @submit.prevent="handleSubmit" class="p-6 space-y-5">
                 <!-- Customer Dropdown -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >Customer <span class="text-red-500">*</span></label
-                  >
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Customer <span class="text-red-500">*</span>
+                  </label>
                   <Dropdown
                     v-model="form.customerId"
                     :options="customers"
@@ -63,10 +63,10 @@
                   />
                 </div>
 
-                <!-- Amount Input -->
+                <!-- Amount returned -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Amount <span class="text-red-500">*</span>
+                    Amount Returned <span class="text-red-500">*</span>
                   </label>
                   <InputNumber
                     v-model="form.amount"
@@ -75,8 +75,9 @@
                     :minFractionDigits="0"
                     :maxFractionDigits="0"
                     useGrouping
+                    suffix=" ៛"
                     required
-                    placeholder="0"
+                    placeholder="0 ៛"
                     class="w-full"
                   />
                 </div>
@@ -94,16 +95,24 @@
                   />
                 </div>
 
-                <!-- Status Toggle -->
-                <div class="flex items-center gap-3 py-2">
-                  <ToggleSwitch v-model="form.status" inputId="status" />
-                  <label for="status" class="text-sm font-medium text-gray-700"
-                    >Active Record</label
+                <!-- Status -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1"
+                    >Status</label
                   >
+                  <Dropdown
+                    v-model="form.status"
+                    :options="[
+                      { label: 'Completed', value: true },
+                      { label: 'Pending', value: false },
+                    ]"
+                    optionLabel="label"
+                    optionValue="value"
+                    class="w-full"
+                  />
                 </div>
 
-                <!-- Actions -->
-                <div class="flex justify-end gap-3 pt-4 border-t mt-4">
+                <div class="flex justify-end gap-3 pt-5 border-t">
                   <button
                     type="button"
                     @click="handleClose"
@@ -116,7 +125,7 @@
                     :disabled="loading"
                     class="bg-[#5B9717] text-white px-6 py-2 rounded-lg font-bold shadow-md hover:bg-[#4a7c13] transition disabled:opacity-50"
                   >
-                    {{ loading ? "Processing..." : "Save Record" }}
+                    {{ loading ? "Saving..." : "Confirm Payment" }}
                   </button>
                 </div>
               </form>
@@ -138,7 +147,6 @@ import {
 } from "@headlessui/vue";
 import Dropdown from "primevue/dropdown";
 import InputNumber from "primevue/inputnumber";
-import ToggleSwitch from "primevue/toggleswitch";
 import { useDocument } from "@/composable/useDocument";
 import { getDocument } from "@/composable/getDocument";
 import { useBranchStore } from "@/store/branchStore";
@@ -152,24 +160,12 @@ export default {
     TransitionRoot,
     Dropdown,
     InputNumber,
-    ToggleSwitch,
   },
-
   props: {
-    visible: {
-      type: Boolean,
-      default: false,
-    },
-    isEditDoc: {
-      type: Boolean,
-      default: false,
-    },
-    doc: {
-      type: Object,
-      default: () => null,
-    },
+    visible: { type: Boolean, default: false },
+    isEditDoc: { type: Boolean, default: false },
+    doc: { type: Object, default: () => null },
   },
-
   emits: ["onClose"],
   setup(props, { emit }) {
     const { insertDoc, updateDoc } = useDocument();
@@ -190,9 +186,7 @@ export default {
     const fetchCustomers = async () => {
       try {
         const res = await getDocs("Customer");
-        if (res && res.data) {
-          customers.value = res.data;
-        }
+        if (res?.data) customers.value = res.data;
       } catch (err) {
         console.error("Failed to fetch customers:", err);
       }
@@ -200,10 +194,9 @@ export default {
 
     watch(
       () => props.visible,
-      (opened) => {
-        if (opened) {
+      (isOpen) => {
+        if (isOpen) {
           fetchCustomers();
-
           if (props.isEditDoc && props.doc) {
             form.value = {
               ...props.doc,
@@ -217,44 +210,128 @@ export default {
               amount: null,
               returnDate: new Date().toISOString().substr(0, 10),
               status: true,
-              branchId: branchStore.branchId || "",
+              branchId: branchStore.branchId,
             };
           }
         }
       },
     );
 
-    const handleClose = () => emit("onClose");
+    const handleClose = () => emit("onClose", "close");
 
     const handleSubmit = async () => {
-      if (!form.value.customerId) {
-        showToast("error", "Please select a customer.");
+      if (!form.value.customerId || form.value.amount === null) {
+        showToast("error", "Please fill required fields.");
         return;
       }
 
       loading.value = true;
       try {
+        // Sanitize Payload to prevent 500 internal server errors
+        const cleanFields = { ...form.value };
+        delete cleanFields._id;
+        delete cleanFields.__v;
+        delete cleanFields.createdAt;
+        delete cleanFields.createdBy;
+
         const payload = {
           fields: {
-            ...form.value,
-            createdBy: props.isEditDoc
-              ? props.doc.createdBy
-              : branchStore.userId,
-            updatedAt: props.isEditDoc ? new Date() : undefined,
+            ...cleanFields,
+            updatedBy: branchStore.userId,
+            updatedAt: props.isEditDoc ? new Date() : null,
           },
         };
 
-        const res = props.isEditDoc
-          ? await updateDoc("CustomerReturnMoney", props.doc._id, payload)
-          : await insertDoc("CustomerReturnMoney", payload);
-
-        if (res) {
-          emit("onClose", props.isEditDoc ? "update" : "add");
-          handleClose();
+        if (!props.isEditDoc) {
+          payload.fields.createdAt = new Date();
+          payload.fields.createdBy = branchStore.userId;
         }
+
+        // 1. Save Return Money Record
+        let savedReturnId = null;
+        if (props.isEditDoc && props.doc?._id) {
+          await updateDoc("CustomerReturnMoney", props.doc._id, payload);
+          savedReturnId = props.doc._id;
+        } else {
+          const res = await insertDoc("CustomerReturnMoney", payload);
+          savedReturnId = res?._id || res?.data?._id || res?.id;
+        }
+
+        // 2. CLIENT-SIDE REIMBURSEMENT UPDATE (Deduct debt)
+        try {
+          const reimbRes = await getDocs("CustomerReimburstment");
+
+          if (reimbRes?.data && reimbRes.data.length > 0) {
+            // Robust lookup: ensure both strings and populated objects match correctly
+            const targetCustomerId = form.value.customerId;
+            const targetBranchId = branchStore.branchId;
+
+            const customerReimbursement = reimbRes.data.find((r) => {
+              const rCustId =
+                typeof r.customerId === "object"
+                  ? r.customerId?._id
+                  : r.customerId;
+              // If branch filtering is strict, ensure it matches, otherwise fallback to finding the customer's main record
+              const matchesCustomer = rCustId === targetCustomerId;
+              const matchesBranch =
+                !targetBranchId || r.branchId === targetBranchId;
+              return matchesCustomer && matchesBranch;
+            });
+
+            if (customerReimbursement) {
+              // Convert everything explicitly to Number to prevent string concatenation bugs
+              const oldReturnAmount = props.isEditDoc
+                ? Number(props.doc.amount || 0)
+                : 0;
+              const newReturnAmount = Number(form.value.amount || 0);
+
+              // Calculate the difference. E.g., User paid 100. difference is 100.
+              const paymentDifference = newReturnAmount - oldReturnAmount;
+
+              const currentDebt = Number(customerReimbursement.totalDebt || 0);
+              const newTotalDebt = currentDebt - paymentDifference;
+
+              // Update the Reimbursement table
+              await updateDoc(
+                "CustomerReimburstment",
+                customerReimbursement._id,
+                {
+                  fields: {
+                    totalDebt: newTotalDebt,
+                    lastCustomerReturnMoneyId: savedReturnId,
+                    updatedAt: new Date(),
+                    updatedBy: branchStore.userId,
+                  },
+                },
+              );
+
+              // Success toast indicating the math worked
+              showToast(
+                "success",
+                `Payment saved! Debt updated from ${currentDebt} ៛ to ${newTotalDebt} ៛`,
+              );
+              console.log(
+                `Debt successfully updated! Old Debt: ${currentDebt}, New Debt: ${newTotalDebt}`,
+              );
+            } else {
+              showToast(
+                "warn",
+                "Payment saved, but no master debt record found for this customer to deduct from.",
+              );
+            }
+          }
+        } catch (balanceErr) {
+          console.error("Failed to update reimbursement debt:", balanceErr);
+          showToast(
+            "error",
+            "Payment saved, but failed to automatically update the Customer Debt table.",
+          );
+        }
+
+        emit("onClose", props.isEditDoc ? "update" : "add");
       } catch (err) {
-        console.error(err);
-        showToast("error", "Failed to save the record. Please try again.");
+        console.error("Submission error:", err);
+        showToast("error", "Failed to save the return record.");
       } finally {
         loading.value = false;
       }
@@ -267,10 +344,12 @@ export default {
 
 <style scoped>
 .input-field {
-  @apply w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#82B215] outline-none transition-all;
+  @apply w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#82B215] outline-none transition-all text-sm;
 }
-
 :deep(.p-dropdown) {
   @apply border-gray-300 rounded-lg;
+}
+:deep(.p-inputnumber-input) {
+  @apply w-full border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[#82B215];
 }
 </style>

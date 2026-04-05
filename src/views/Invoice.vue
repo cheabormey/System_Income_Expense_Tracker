@@ -26,7 +26,6 @@
           @click="openNew"
         />
 
-        <!-- Smooth Transition wrapper for contextual actions -->
         <Transition
           enter-active-class="transition-all duration-300 ease-out"
           enter-from-class="opacity-0 scale-95 translate-y-1"
@@ -74,7 +73,11 @@
           </template>
         </Column>
 
-        <Column field="customerId.username" header="Customer"></Column>
+        <Column field="customerId.username" header="Customer">
+          <template #body="slotProps">
+            {{ getCustomerName(slotProps.data.customerId) }}
+          </template>
+        </Column>
 
         <Column field="totalAmount" header="Total Amount">
           <template #body="slotProps">
@@ -85,18 +88,13 @@
                   : 'text-green-600 font-semibold'
               "
             >
-              {{
-                slotProps.data.totalAmount
-                  ? slotProps.data.totalAmount.toLocaleString()
-                  : "0"
-              }}
+              {{ formatCurrency(slotProps.data.totalAmount) }}
             </span>
           </template>
         </Column>
 
         <Column header="Actions">
           <template #body="slotProps">
-            <!-- Quick Update Action to clear debt using updateDoc -->
             <Button
               v-if="slotProps.data.isDebt"
               icon="pi pi-check-circle"
@@ -112,14 +110,13 @@
             <Button
               icon="pi pi-trash"
               class="p-button-text p-button-danger"
-              @click="deleteEntry(slotProps.data._id)"
+              @click="deleteEntry(slotProps.data)"
             />
           </template>
         </Column>
       </DataTable>
     </div>
 
-    <!-- Modal Form -->
     <InvoiceForm
       :visible="displayDialog"
       :isEditDoc="isEditMode"
@@ -128,7 +125,6 @@
       @refresh="fetchLedgerData"
     />
 
-    <!-- Toast component must be present in the template to show notifications -->
     <Toast />
   </div>
 </template>
@@ -180,12 +176,18 @@ export default {
       return new Date(val).toLocaleDateString("en-GB");
     };
 
-    // Inline fallback for formatNameById just in case the helper isn't hooked up correctly
     const getCustomerName = (customerId) => {
       if (!customerId) return "";
       if (typeof customerId === "object") return customerId.username || "";
       const found = customer.value.find((c) => c._id === customerId);
       return found ? found.username : customerId;
+    };
+
+    const formatCurrency = (val) => {
+      if (val === null || val === undefined) return "0 ៛";
+      return (
+        Number(val).toLocaleString("en-US", { maximumFractionDigits: 0 }) + " ៛"
+      );
     };
 
     const handleNavigateBack = () => router.push("/");
@@ -197,18 +199,15 @@ export default {
     };
 
     const editEntry = (data) => {
-      // Fix for date parsing error: clone the data and convert playDate to a Date object
       const formattedData = { ...data };
       if (formattedData.playDate) {
         formattedData.playDate = new Date(formattedData.playDate);
       }
-
       selectedDoc.value = formattedData;
       isEditMode.value = true;
       displayDialog.value = true;
     };
 
-    // Quick action to mark debt as paid
     const markAsPaid = async (id) => {
       if (
         confirm("Are you sure you want to mark this invoice as fully paid?")
@@ -217,7 +216,7 @@ export default {
           await updateDoc("Invoice", id, {
             fields: {
               isDebt: false,
-              deptAmount: 0,
+              debtAmount: 0,
             },
           });
           showToast("update", "Invoice marked as paid.");
@@ -229,11 +228,15 @@ export default {
       }
     };
 
-    // Single delete function
-    const deleteEntry = async (id) => {
+    const deleteEntry = async (entry) => {
+      if (entry.isUnchanged) {
+        showToast("error", "Cannot delete an unchanged invoice.");
+        return;
+      }
+
       if (confirm("Are you sure you want to delete this invoice?")) {
         try {
-          await deleteDoc("Invoice", id);
+          await deleteDoc("Invoice", entry._id);
           showToast("delete", "Invoice deleted successfully.");
           await fetchLedgerData();
         } catch (error) {
@@ -243,17 +246,28 @@ export default {
       }
     };
 
-    // Multiple delete function
     const deleteSelectedEntries = async () => {
       if (!selectedEntries.value || selectedEntries.value.length === 0) return;
 
+      const deletableEntries = selectedEntries.value.filter(
+        (e) => !e.isUnchanged,
+      );
+
+      if (deletableEntries.length === 0) {
+        showToast(
+          "error",
+          "Selected invoices are marked unchanged and cannot be deleted.",
+        );
+        return;
+      }
+
       if (
         confirm(
-          `Are you sure you want to delete ${selectedEntries.value.length} selected invoices?`,
+          `Are you sure you want to delete ${deletableEntries.length} selected invoices?`,
         )
       ) {
         try {
-          const deletePromises = selectedEntries.value.map((entry) =>
+          const deletePromises = deletableEntries.map((entry) =>
             deleteDoc("Invoice", entry._id),
           );
           await Promise.all(deletePromises);
@@ -274,10 +288,32 @@ export default {
         return;
       }
 
+      // Helper to format numbers cleanly for print without currency symbol
+      const fmt = (num) => {
+        if (!num) return "0";
+        return Number(num).toLocaleString("en-US", {
+          maximumFractionDigits: 2,
+        });
+      };
+
+      // Extract common header data from the first selected entry
+      const firstEntry = selectedEntries.value[0];
+      const entryId = firstEntry._id
+        ? firstEntry._id.substring(0, 5).toUpperCase()
+        : "00000";
+      const customerName = getCustomerName(firstEntry.customerId);
+      const dateStr = firstEntry.playDate
+        ? new Date(firstEntry.playDate).toLocaleDateString("en-GB")
+        : "";
+
+      // Top global header matching the sample structure
+      const globalHeader = `${entryId} ${customerName} ${dateStr}`;
+
       let printContent = `
         <!DOCTYPE html>
-        <html>
+        <html lang="km">
         <head>
+          <meta charset="UTF-8">
           <title>Print Ledger</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&display=swap');
@@ -286,111 +322,101 @@ export default {
               padding: 20px; 
               margin: 0; 
               background: #fff; 
+              font-size: 14px;
+              color: #333;
             }
-            .receipt-wrapper {
-              border: 5px solid #eceadd;
-              border-radius: 6px;
-              padding: 4px;
+            .print-container {
               max-width: 500px;
-              margin: 0 auto 30px auto;
-              page-break-inside: avoid;
+              margin: 0 auto;
             }
-            .receipt-inner {
-              border: 1px solid #dcdcdc;
-              padding: 10px;
-              border-radius: 4px;
-            }
-            .header { 
+            .global-header { 
               text-align: center; 
               font-weight: bold; 
-              font-size: 15px; 
-              margin-bottom: 10px; 
+              font-size: 16px; 
+              margin-bottom: 15px; 
+            }
+            .receipt-wrapper { 
+              border: 4px solid #eceadd; 
+              border-radius: 6px; 
+              padding: 4px; 
+              margin-bottom: 15px; 
+              page-break-inside: avoid; 
+            }
+            .receipt-inner { 
+              border: 1px solid #ccc; 
+              padding: 10px; 
+              border-radius: 4px; 
             }
             table { 
               width: 100%; 
               border-collapse: collapse; 
               margin-bottom: 10px; 
-              font-size: 14px; 
             }
             th, td { 
               border: 1px solid #ebebeb; 
               padding: 6px; 
               text-align: center; 
-              color: #333; 
               font-weight: bold; 
             }
             th { 
               color: #000; 
-              font-weight: bold; 
-              background-color: #fcfcfc;
+              background-color: #fcfcfc; 
             }
-            .check-icon { 
-              color: #8bc34a; 
-              font-weight: bold; 
-              font-size: 14px; 
-            }
-            .summary { 
-              padding: 5px 15px; 
-              font-size: 15px; 
-              font-weight: bold; 
-            }
-            .summary-row { 
-              display: flex; 
-              align-items: center; 
-              margin-bottom: 4px; 
-            }
-            .summary-label { 
-              width: 55px; 
-              text-align: left; 
-            }
-            .summary-calc { 
-              margin-left: 10px; 
-            }
-            .divider { 
-              border-top: 1px solid #000; 
-              margin: 10px 0; 
-              width: 60%; 
-            }
-            .total-row { 
-              color: #0000cc; 
-              font-weight: bold; 
-              text-align: left; 
-              font-size: 16px; 
-              margin-top: 5px; 
-              padding-left: 40px;
-            }
+            .check-icon { color: #8bc34a; font-weight: bold; font-size: 14px; }
+            .summary { padding: 5px 15px; font-weight: bold; }
+            .summary-row { display: flex; align-items: center; margin-bottom: 4px; }
+            .summary-label { width: 65px; text-align: left; }
+            .summary-calc { margin-left: 10px; }
+            .divider { border-top: 1px solid #999; margin: 10px 0; width: 60%; }
+            .total-blue { color: #0000cc; font-weight: bold; text-align: center; font-size: 16px; margin-top: 10px; }
+            .total-red { color: #cc0000; font-weight: bold; text-align: center; font-size: 16px; margin-top: 10px; }
+            .grand-total-section { text-align: center; font-weight: bold; font-size: 16px; margin-top: 30px; page-break-inside: avoid; }
+            .gt-row { display: flex; justify-content: center; margin-bottom: 5px; }
+            .gt-label { width: 120px; text-align: right; padding-right: 10px; }
+            .gt-value { width: 100px; text-align: left; }
+            .gt-divider { border-top: 1px dashed #000; width: 220px; margin: 5px auto; }
             @media print {
               body { padding: 0; }
-              .receipt-wrapper { 
-                page-break-inside: avoid;
-                margin-bottom: 20px;
-                padding-bottom: 20px;
-                border: none;
-                // border-bottom: 2px dashed #000;
-                max-width: 100%; 
-              }
-              .receipt-wrapper:last-child {
-                border-bottom: none;
-                margin-bottom: 0;
-              }
+              .receipt-wrapper { margin-bottom: 15px; }
             }
           </style>
         </head>
         <body>
+          <div class="print-container">
+            <div class="global-header">${globalHeader}</div>
       `;
 
+      let sumGrandTotal = 0;
+      let sumDebt = 0;
+
       selectedEntries.value.forEach((entry) => {
-        const plays = entry.lotteryPlays
-          ? Object.values(entry.lotteryPlays)
-          : [];
+        const plays = Array.isArray(entry.lotteryPlays)
+          ? entry.lotteryPlays
+          : Object.values(entry.lotteryPlays || {});
+
+        const twoAmount = Number(entry.finalTwoAmount) || 0;
+        const threeAmount = Number(entry.finalThreeAmount) || 0;
+        const debtAmt = Number(entry.debtAmount) || 0;
+        const totalAmt = Number(entry.totalAmount) || 0;
+
+        sumGrandTotal += totalAmt;
+        sumDebt += debtAmt;
+
+        // Try to get category name for the header, default to 'វេន'
+        let categoryLabel = "វេន";
+        if (plays.length > 0 && plays[0].categoryId) {
+          categoryLabel =
+            plays[0].categoryId.name || plays[0].categoryId || "វេន";
+        }
+
         let rowsHtml = plays
           .map(
             (p, i) => `
           <tr>
             <td>(${i + 1})</td>
             <td>${p.title || ""}</td>
-            <td>${p.winTwoNumber || ""}</td>
-            <td>${p.winThreeNumber || ""}</td>
+            <td>${p.winTwoNumberType || ""}</td>
+            <td>${p.winThreeNumberType || ""}</td>
             <td>${p.isTwoNumber ? "10" : ""}</td>
             <td class="check-icon">✔</td>
           </tr>
@@ -402,24 +428,25 @@ export default {
           rowsHtml = `<tr><td colspan="6">No entries found</td></tr>`;
         }
 
-        const dateStr = entry.playDate
-          ? new Date(entry.playDate).toLocaleDateString("en-GB")
-          : "";
-        const entryId = entry._id
-          ? entry._id.substring(0, 5).toUpperCase()
-          : "00000";
-
-        const customerName = getCustomerName(entry.customerId);
-        const headerText = `${entryId} ${customerName} ${dateStr}`;
+        // Determine if total is positive (មេស៊ី) or negative (មេសង)
+        let totalDisplayHtml = "";
+        if (totalAmt < 0) {
+          totalDisplayHtml = `<div class="total-red">មេសង: ${fmt(
+            totalAmt,
+          )} = (${fmt(Math.abs(totalAmt))})</div>`;
+        } else {
+          totalDisplayHtml = `<div class="total-blue">មេស៊ី: = ${fmt(
+            totalAmt,
+          )}</div>`;
+        }
 
         printContent += `
           <div class="receipt-wrapper">
             <div class="receipt-inner">
-              <div class="header">${headerText}</div>
               <table>
                 <thead>
                   <tr>
-                    <th>ល្ងាច</th>
+                    <th>${categoryLabel}</th>
                     <th>លេខ កូដ</th>
                     <th>2លេខ</th>
                     <th>3លេខ</th>
@@ -434,43 +461,62 @@ export default {
               <div class="summary">
                 <div class="summary-row">
                   <span class="summary-label">2លេខ</span>
-                  <span class="summary-calc">${
-                    entry.finalTwoAmount || 0
-                  } x 100% = ${entry.finalTwoAmount || 0}</span>
+                  <span class="summary-calc">${fmt(twoAmount)} x 100% = ${fmt(
+          twoAmount,
+        )}</span>
                 </div>
                 <div class="summary-row">
                   <span class="summary-label">3លេខ</span>
-                  <span class="summary-calc">${
-                    entry.finalThreeAmount || 0
-                  } x 65% = ${
-          (entry.finalThreeAmount * 0.65).toFixed(0) || 0
-        }</span>
+                  <span class="summary-calc">${fmt(threeAmount)} x 65% = ${fmt(
+          threeAmount * 0.65,
+        )}</span>
                 </div>
                 ${
-                  entry.deptAmount
+                  debtAmt
                     ? `
                 <div class="summary-row">
                   <span class="summary-label">បំណុល</span>
-                  <span class="summary-calc">${entry.deptAmount}</span>
+                  <span class="summary-calc">${fmt(debtAmt)}</span>
                 </div>`
                     : ""
                 }
                 <div class="divider"></div>
-                <div class="total-row">មេស៊ី: = ${entry.totalAmount || 0}</div>
+                ${totalDisplayHtml}
               </div>
             </div>
           </div>
         `;
       });
 
+      // Append Grand Total Section
       printContent += `
+            <div class="grand-total-section">
+              <div class="gt-row">
+                <div class="gt-label">សរុបចុងស្តុប :</div>
+                <div class="gt-value">${fmt(
+                  sumGrandTotal,
+                )} <span class="check-icon">✔</span></div>
+              </div>
+              ${
+                sumDebt
+                  ? `
+              <div class="gt-row">
+                <div class="gt-label">លុយចាស់ :</div>
+                <div class="gt-value">${fmt(sumDebt)}</div>
+              </div>
+              `
+                  : ""
+              }
+              <div class="gt-divider"></div>
+              <div class="gt-row" style="color: #0000cc;">
+                <div class="gt-label">សរុប :</div>
+                <div class="gt-value">${fmt(sumGrandTotal + sumDebt)}</div>
+              </div>
+            </div>
+          </div> <!-- End print-container -->
           <script>
-            window.onload = () => {
-              window.print();
-            }
-            window.onafterprint = () => {
-              window.close();
-            }
+            window.onload = () => { window.print(); }
+            window.onafterprint = () => { window.close(); }
           <\/script>
         </body>
         </html>
@@ -492,6 +538,7 @@ export default {
       isEditMode,
       selectedDoc,
       formatDate,
+      formatCurrency,
       openNew,
       editEntry,
       markAsPaid,
@@ -500,26 +547,22 @@ export default {
       fetchLedgerData,
       printSelectedEntries,
       handleNavigateBack,
+      getCustomerName,
     };
   },
 };
 </script>
 
 <style scoped>
-/* Mobile-friendly scroll for small screens */
 .p-datatable-sm {
   min-width: 600px;
 }
-
-/* Hover effect for actions */
 .p-button-text.p-button-success:hover {
   background-color: #d1fae5;
 }
-
 .p-button-text.p-button-danger:hover {
   background-color: #fee2e2;
 }
-
 .p-button-text.p-button-info:hover {
   background-color: #e0f2fe;
 }

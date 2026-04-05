@@ -148,6 +148,7 @@ import Dropdown from "primevue/dropdown";
 import InputNumber from "primevue/inputnumber";
 import MultiSelect from "primevue/multiselect";
 import { useDocument } from "@/composable/useDocument";
+import { getDocument } from "@/composable/getDocument";
 import { useBranchStore } from "@/store/branchStore";
 import { useAppToast } from "@/helper/toastHelper";
 
@@ -171,6 +172,7 @@ export default {
   emits: ["onClose"],
   setup(props, { emit }) {
     const { insertDoc, updateDoc } = useDocument();
+    const { getDocs } = getDocument(); // Added to fetch invoices
     const branchStore = useBranchStore();
     const { showToast } = useAppToast();
     const loading = ref(false);
@@ -181,12 +183,7 @@ export default {
       { label: "Inactive / Invalid", value: false },
     ]);
 
-    // Placeholder for invoice options (populate this from your API/DB)
-    const invoiceOptions = ref([
-      // Example data format:
-      // { label: 'INV-001', value: 'INV-001' },
-      // { label: 'INV-002', value: 'INV-002' },
-    ]);
+    const invoiceOptions = ref([]);
 
     const form = ref({
       amount: null,
@@ -195,10 +192,40 @@ export default {
       branchId: "",
     });
 
+    // Fetch and format Invoices
+    const fetchInvoices = async () => {
+      try {
+        const res = await getDocs("Invoice");
+        if (res?.data) {
+          // Filter by branch if necessary: res.data.filter(inv => inv.branchId === branchStore.branchId)
+          invoiceOptions.value = res.data.map((inv) => {
+            const playDate = inv.playDate
+              ? new Date(inv.playDate).toLocaleDateString("en-GB")
+              : "Unknown Date";
+            const amount = inv.totalAmount
+              ? Number(inv.totalAmount).toLocaleString("en-US") + " ៛"
+              : "0 ៛";
+            const shortId = inv._id
+              ? inv._id.substring(0, 5).toUpperCase()
+              : "";
+
+            return {
+              label: `[${shortId}] - ${playDate} - ${amount}`,
+              value: inv._id,
+            };
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch invoices:", error);
+      }
+    };
+
     watch(
       () => props.visible,
       (newVal) => {
         if (newVal) {
+          fetchInvoices(); // Fetch invoices when the modal opens
+
           if (props.doc && props.isEditDoc) {
             form.value = {
               ...props.doc,
