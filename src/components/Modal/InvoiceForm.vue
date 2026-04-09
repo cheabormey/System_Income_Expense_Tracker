@@ -8,25 +8,13 @@
     "
     modal
     :header="isEditDoc ? 'Edit Invoice' : 'New Invoice'"
-    class="w-[95vw] md:w-[80vw] lg:w-[65vw]"
+    class="w-[95vw] md:w-[85vw] lg:w-[75vw]"
   >
     <div class="space-y-6">
-      <!-- BASIC INFO -->
+      <!-- CUSTOMER AND DATE -->
       <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="form-label font-semibold mb-1 block">Branch</label>
-          <Dropdown
-            v-model="form.branchId"
-            :options="branches"
-            optionLabel="name"
-            optionValue="_id"
-            placeholder="Select Branch"
-            class="w-full"
-          />
-        </div>
-
-        <div>
-          <label class="form-label font-semibold mb-1 block"
+          <label class="form-label font-semibold mb-1 block text-gray-700"
             >Customer <span class="text-red-500">*</span></label
           >
           <Dropdown
@@ -36,6 +24,7 @@
             optionValue="_id"
             placeholder="Select Customer"
             class="w-full"
+            filter
             :class="{ 'p-invalid border-red-500': errors.customerId }"
           />
           <Message
@@ -48,7 +37,7 @@
         </div>
 
         <div>
-          <label class="form-label font-semibold mb-1 block"
+          <label class="form-label font-semibold mb-1 block text-gray-700"
             >Play Date <span class="text-red-500">*</span></label
           >
           <Calendar
@@ -63,19 +52,20 @@
             severity="error"
             class="mt-1 m-0 p-2"
             :closable="false"
-            >Play Date is required</Message
+            >Date is required</Message
           >
         </div>
       </section>
 
       <!-- LOTTERY PLAYS -->
       <section>
-        <div class="flex justify-between items-center mb-3">
-          <h3 class="text-lg font-semibold">Lottery Plays</h3>
+        <div class="flex justify-between items-center mb-3 border-b pb-2">
+          <h3 class="text-lg font-bold text-gray-800">Lottery Plays</h3>
           <Button
             label="Add Play"
             icon="pi pi-plus"
             size="small"
+            class="p-button-success p-button-outlined"
             @click="addPlay"
           />
         </div>
@@ -83,132 +73,183 @@
         <div
           v-for="(play, index) in form.lotteryPlays"
           :key="index"
-          class="border rounded-lg p-4 mb-4 bg-gray-50 space-y-3"
+          class="border rounded-xl p-4 mb-4 bg-gray-50 shadow-sm space-y-4"
         >
-          <div class="flex justify-between items-center mb-2">
-            <strong>Play #{{ index + 1 }}</strong>
+          <div class="flex justify-between items-center mb-1">
+            <strong class="text-[#045B1B]">Play #{{ index + 1 }}</strong>
             <Button
               icon="pi pi-trash"
               text
               severity="danger"
+              rounded
+              aria-label="Delete"
               @click="removePlay(index)"
             />
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Dropdown
-              v-model="play.categoryId"
-              :options="categories"
-              optionLabel="name"
-              optionValue="_id"
-              placeholder="Category"
-            />
-            <Dropdown
-              v-model="play.productId"
-              :options="products"
-              optionLabel="name"
-              optionValue="_id"
-              placeholder="Product"
-            />
-            <InputText
-              v-model="play.title"
-              placeholder="Title"
-              class="w-full"
-            />
-          </div>
-
+          <!-- Top Row: Category, Product, Title -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium">2D Win Type</label>
-              <div class="flex items-center gap-2">
-                <InputNumber
-                  v-model="play.winTwoNumberType"
-                  placeholder="2D Win Number"
-                  class="flex-1"
-                />
-                <Checkbox v-model="play.isTwoNumber" binary />
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium">3D Win Type</label>
-              <div class="flex items-center gap-2">
-                <InputNumber
-                  v-model="play.winThreeNumberType"
-                  placeholder="3D Win Number"
-                  class="flex-1"
-                />
-                <Checkbox v-model="play.isThreeNumber" binary />
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <label class="text-sm font-medium">Total Amount</label>
-              <InputNumber
-                v-model="play.totalAmount"
-                placeholder="Amount"
-                mode="decimal"
+            <div class="flex flex-col">
+              <label class="text-sm font-medium text-gray-600 mb-1"
+                >Category</label
+              >
+              <Dropdown
+                v-model="play.categoryId"
+                :options="categories"
+                optionLabel="name"
+                optionValue="_id"
+                placeholder="Select Category"
               />
             </div>
+            <div class="flex flex-col">
+              <label class="text-sm font-medium text-gray-600 mb-1"
+                >Product</label
+              >
+              <Dropdown
+                v-model="play.productId"
+                :options="products"
+                optionLabel="name"
+                optionValue="_id"
+                placeholder="Select Product"
+              />
+            </div>
+            <div class="flex flex-col">
+              <label class="text-sm font-medium text-gray-600 mb-1"
+                >Title</label
+              >
+              <InputText v-model="play.title" placeholder="e.g. Morning Play" />
+            </div>
+          </div>
+
+          <!-- Middle Row: 2D & 3D Settings -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 2D Settings -->
+            <div
+              class="flex flex-col bg-blue-50/50 p-3 rounded border border-blue-100"
+            >
+              <label class="text-sm font-bold text-blue-700 mb-2"
+                >2-Win number</label
+              >
+              <div
+                class="flex flex-wrap sm:flex-nowrap items-center gap-2 mb-2"
+              >
+                <InputNumber
+                  v-model="play.twoDigitNumber"
+                  placeholder="2D Number"
+                  :useGrouping="false"
+                  class="flex-1 min-w-[100px]"
+                />
+                <InputNumber
+                  v-model="play.twoDigitAmount"
+                  placeholder="2D Amount"
+                  mode="decimal"
+                  class="flex-1 min-w-[100px]"
+                />
+              </div>
+              <div class="flex items-center gap-2 mt-1">
+                <Checkbox
+                  v-model="play.isTwoNumber"
+                  binary
+                  :inputId="'isTwoNum_' + index"
+                />
+                <label
+                  :for="'isTwoNum_' + index"
+                  class="text-sm cursor-pointer select-none"
+                  >Is 2D Number?</label
+                >
+              </div>
+            </div>
+
+            <!-- 3D Settings -->
+            <div
+              class="flex flex-col bg-purple-50/50 p-3 rounded border border-purple-100"
+            >
+              <label class="text-sm font-bold text-purple-700 mb-2"
+                >3-Win number</label
+              >
+              <div
+                class="flex flex-wrap sm:flex-nowrap items-center gap-2 mb-2"
+              >
+                <InputNumber
+                  v-model="play.threeDigitNumber"
+                  placeholder="3D Number"
+                  :useGrouping="false"
+                  class="flex-1 min-w-[100px]"
+                />
+                <InputNumber
+                  v-model="play.threeDigitAmount"
+                  placeholder="3D Amount"
+                  mode="decimal"
+                  class="flex-1 min-w-[100px]"
+                />
+              </div>
+              <div class="flex items-center gap-2 mt-1">
+                <Checkbox
+                  v-model="play.isThreeNumber"
+                  binary
+                  :inputId="'isThreeNum_' + index"
+                />
+                <label
+                  :for="'isThreeNum_' + index"
+                  class="text-sm cursor-pointer select-none"
+                  >Is 3D Number?</label
+                >
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- TOTAL SUMMARY -->
-      <section
-        class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-100 p-4 rounded-lg"
-      >
-        <div class="flex flex-col">
-          <label class="text-sm font-semibold mb-1 text-gray-600"
-            >Final 2D Amount</label
-          >
-          <InputNumber
-            v-model="form.finalTwoAmount"
-            placeholder="0"
-            mode="decimal"
-          />
-        </div>
-        <div class="flex flex-col">
-          <label class="text-sm font-semibold mb-1 text-gray-600"
-            >Final 3D Amount</label
-          >
-          <InputNumber
-            v-model="form.finalThreeAmount"
-            placeholder="0"
-            mode="decimal"
-          />
-        </div>
-        <div class="flex flex-col">
-          <label class="text-sm font-semibold mb-1 text-gray-600"
-            >Debt Amount</label
-          >
-          <InputNumber
-            v-model="form.debtAmount"
-            placeholder="0"
-            mode="decimal"
-          />
-        </div>
-        <div class="flex flex-col">
-          <label class="text-sm font-semibold mb-1 text-gray-600"
-            >Grand Total Amount</label
-          >
-          <InputNumber
-            v-model="form.totalAmount"
-            placeholder="0"
-            mode="decimal"
-          />
-        </div>
-      </section>
-
-      <!-- DESCRIPTION -->
+      <!-- OVERALL AMOUNTS & DESCRIPTION -->
       <section>
-        <label class="form-label font-semibold mb-1 block">Description</label>
-        <Textarea v-model="form.description" rows="3" class="w-full" />
+        <h3 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2">
+          Invoice Summary
+        </h3>
+        <div
+          class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border shadow-sm mb-4"
+        >
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold mb-1 text-gray-700"
+              >Total Invoice Amount (Auto-Calculated)</label
+            >
+            <InputNumber
+              v-model="form.totalAmount"
+              placeholder="0 ៛"
+              mode="decimal"
+              inputClass="font-bold text-green-600 bg-gray-100 cursor-not-allowed"
+              readonly
+              disabled
+            />
+          </div>
+          <div class="flex flex-col">
+            <label class="text-sm font-semibold mb-1 text-gray-700"
+              >Debt Amount</label
+            >
+            <InputNumber
+              v-model="form.deptAmount"
+              placeholder="0 ៛"
+              mode="decimal"
+              inputClass="font-bold text-red-600"
+            />
+          </div>
+        </div>
+
+        <div class="flex flex-col">
+          <label class="text-sm font-semibold mb-1 text-gray-700"
+            >Description</label
+          >
+          <Textarea
+            v-model="form.description"
+            rows="2"
+            placeholder="Optional invoice description..."
+            class="w-full"
+          />
+        </div>
       </section>
 
-      <!-- FLAGS -->
+      <!-- SYSTEM FLAGS -->
       <section
-        class="flex flex-wrap gap-6 mt-2 bg-blue-50 p-4 rounded-lg border border-blue-100"
+        class="flex flex-wrap gap-6 mt-4 bg-gray-100 p-3 rounded-lg border"
       >
         <div
           class="flex items-center gap-2 cursor-pointer"
@@ -219,20 +260,24 @@
             binary
             inputId="chiefWin"
           />
-          <label for="chiefWin" class="font-medium text-[#045B1B]"
+          <label for="chiefWin" class="font-medium text-[#045B1B] select-none"
             >Chief Lottery Win</label
           >
         </div>
         <div class="flex items-center gap-2 cursor-pointer">
-          <Checkbox v-model="form.isDebt" binary inputId="isDebt" />
-          <label for="isDebt" class="font-medium">Is Debt</label>
+          <Checkbox v-model="form.isDebt" binary inputId="isDebtFlag" />
+          <label
+            for="isDebtFlag"
+            class="font-medium text-orange-600 select-none"
+            >Is Debt</label
+          >
         </div>
         <div
           class="flex items-center gap-2 cursor-pointer"
           title="Check this to prevent deletion and record to history"
         >
           <Checkbox v-model="form.isUnchanged" binary inputId="isUnchanged" />
-          <label for="isUnchanged" class="font-medium text-red-600"
+          <label for="isUnchanged" class="font-medium text-red-600 select-none"
             >Lock Invoice (Unchanged)</label
           >
         </div>
@@ -240,10 +285,16 @@
     </div>
 
     <template #footer>
-      <Button label="Cancel" text @click="handleClose" />
       <Button
-        label="Save"
+        label="Cancel"
+        text
+        class="text-gray-500 hover:text-gray-700"
+        @click="handleClose"
+      />
+      <Button
+        label="Save Invoice"
         icon="pi pi-check"
+        class="p-button-success"
         :loading="loading"
         @click="saveInvoice"
       />
@@ -281,7 +332,6 @@ const { showToast } = useAppToast();
 const branchStore = useBranchStore();
 const loading = ref(false);
 
-const branches = ref([]);
 const customers = ref([]);
 const categories = ref([]);
 const products = ref([]);
@@ -289,14 +339,11 @@ const products = ref([]);
 const errors = ref({ customerId: false, playDate: false });
 
 const form = ref({
-  branchId: null,
   customerId: null,
   playDate: null,
   lotteryPlays: [],
-  finalTwoAmount: 0,
-  finalThreeAmount: 0,
-  debtAmount: 0,
   totalAmount: 0,
+  deptAmount: 0,
   description: "",
   isChiefLotteryWin: false,
   isDebt: false,
@@ -305,15 +352,11 @@ const form = ref({
 
 const fetchDropdownData = async () => {
   try {
-    const [branchRes, customerRes, categoryRes, productRes] = await Promise.all(
-      [
-        getDocs("Branch"),
-        getDocs("Customer"),
-        getDocs("Category"),
-        getDocs("Product"),
-      ],
-    );
-    branches.value = branchRes.data || [];
+    const [customerRes, categoryRes, productRes] = await Promise.all([
+      getDocs("Customer"),
+      getDocs("Category"),
+      getDocs("Product"),
+    ]);
     customers.value = customerRes.data || [];
     categories.value = categoryRes.data || [];
     products.value = productRes.data || [];
@@ -335,11 +378,37 @@ watch(
             : Object.values(props.doc.lotteryPlays || {}),
         };
       } else {
-        form.value.lotteryPlays = [];
-        form.value.branchId = branchStore.branchId;
+        form.value = {
+          customerId: null,
+          playDate: new Date(),
+          lotteryPlays: [],
+          totalAmount: 0,
+          deptAmount: 0,
+          description: "",
+          isChiefLotteryWin: false,
+          isDebt: false,
+          isUnchanged: false,
+        };
       }
     }
   },
+);
+
+// Auto-calculate Total Invoice Amount
+watch(
+  () => form.value.lotteryPlays,
+  (plays) => {
+    let total = 0;
+    if (plays && plays.length > 0) {
+      plays.forEach((play) => {
+        total +=
+          (Number(play.twoDigitAmount) || 0) +
+          (Number(play.threeDigitAmount) || 0);
+      });
+    }
+    form.value.totalAmount = total;
+  },
+  { deep: true },
 );
 
 const addPlay = () => {
@@ -347,11 +416,12 @@ const addPlay = () => {
     categoryId: null,
     productId: null,
     title: "",
-    winTwoNumberType: null,
-    winThreeNumberType: null,
+    twoDigitNumber: null,
+    threeDigitNumber: null,
+    twoDigitAmount: null,
+    threeDigitAmount: null,
     isTwoNumber: false,
     isThreeNumber: false,
-    totalAmount: null,
   });
 };
 
@@ -373,14 +443,11 @@ const validateForm = () => {
 
 const handleClose = () => {
   form.value = {
-    branchId: branchStore.branchId,
     customerId: null,
     playDate: null,
     lotteryPlays: [],
-    finalTwoAmount: 0,
-    finalThreeAmount: 0,
-    debtAmount: 0,
     totalAmount: 0,
+    deptAmount: 0,
     description: "",
     isChiefLotteryWin: false,
     isDebt: false,
@@ -401,6 +468,10 @@ const saveInvoice = async () => {
     form.value.lotteryPlays.map((p, i) => [`play_${i}`, p]),
   );
 
+  // Auto assign branchId from the global store
+  cleanFields.branchId = branchStore.branchId;
+
+  // Clean up system fields before sending to the backend
   delete cleanFields._id;
   delete cleanFields.__v;
   delete cleanFields.createdAt;
@@ -408,15 +479,36 @@ const saveInvoice = async () => {
 
   const payload = {
     fields: {
-      ...cleanFields,
-      updatedAt: new Date(),
+      branchId: branchStore.branchId,
+      customerId: form.value.customerId,
+      playDate: form.value.playDate,
+      lotteryPlays: Object.fromEntries(
+        form.value.lotteryPlays.map((play, index) => [
+          `play_${index}`,
+          {
+            categoryId: play.categoryId,
+            productId: play.productId,
+            title: play.title,
+            twoDigitNumber: play.twoDigitNumber,
+            threeDigitNumber: play.threeDigitNumber,
+            twoDigitAmount: play.twoDigitAmount,
+            threeDigitAmount: play.threeDigitAmount,
+            isTwoNumber: play.isTwoNumber,
+            isThreeNumber: play.isThreeNumber,
+          },
+        ]),
+      ),
+      totalAmount: form.value.totalAmount,
+      deptAmount: form.value.deptAmount,
+      description: form.value.description,
+      isChiefLotteryWin: form.value.isChiefLotteryWin,
+      isDebt: form.value.isDebt,
+      isUnchanged: form.value.isUnchanged,
       updatedBy: branchStore.userId,
+      updatedAt: props.isEditDoc ? new Date() : null,
+      ...(props.isEditDoc ? {} : { createdBy: branchStore.userId }),
     },
   };
-  if (!props.isEditDoc) {
-    payload.fields.createdAt = new Date();
-    payload.fields.createdBy = branchStore.userId;
-  }
 
   try {
     let savedInvoiceId = null;
@@ -443,16 +535,11 @@ const saveInvoice = async () => {
     if (form.value.isChiefLotteryWin) {
       const balanceRes = await getDocs("LotteryChiefBalance");
       let activeBalance = balanceRes.data?.find(
-        (b) => b.branchId === form.value.branchId && b.status === true,
+        (b) => b.branchId === branchStore.branchId && b.status === true,
       );
 
-      // Calculate difference if editing. If new, the difference is just the new totalAmount.
-      const oldTotal =
-        props.isEditDoc && props.doc.isChiefLotteryWin
-          ? Number(props.doc.totalAmount || 0)
-          : 0;
-      const newTotal = Number(form.value.totalAmount || 0);
-      const addedValue = newTotal - oldTotal;
+      // Sum up the total of this invoice to add to the wallet
+      const currentInvoiceTotal = Number(form.value.totalAmount) || 0;
 
       if (activeBalance) {
         let updatedInvoiceIds = Array.isArray(activeBalance.invoiceIds)
@@ -461,20 +548,20 @@ const saveInvoice = async () => {
         if (!updatedInvoiceIds.includes(savedInvoiceId))
           updatedInvoiceIds.push(savedInvoiceId);
 
+        // Add the new total to the Chief's Wallet
         await updateDoc("LotteryChiefBalance", activeBalance._id, {
           fields: {
-            amount: Number(activeBalance.amount || 0) + addedValue, // Math: Add to Wallet
+            amount: Number(activeBalance.amount || 0) + currentInvoiceTotal,
             invoiceIds: updatedInvoiceIds,
             updatedAt: new Date(),
             updatedBy: branchStore.userId,
           },
         });
-        console.log(`Chief Balance increased by ${addedValue} ៛`);
       } else {
         await insertDoc("LotteryChiefBalance", {
           fields: {
-            branchId: form.value.branchId,
-            amount: newTotal,
+            branchId: branchStore.branchId,
+            amount: currentInvoiceTotal,
             invoiceIds: [savedInvoiceId],
             status: true,
             createdAt: new Date(),
