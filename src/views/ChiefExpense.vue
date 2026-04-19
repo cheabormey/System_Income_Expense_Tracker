@@ -7,7 +7,9 @@
       <ChevronLeftIcon class="w-6 h-6" />
       <span class="ml-1 text-sm">Back</span>
     </button>
-
+    <!-- <pre>
+      {{ tableData }}
+    </pre> -->
     <div
       class="bg-white rounded-lg shadow-sm p-6 my-4 border-2 border-dashed border-[#5B9717]"
     >

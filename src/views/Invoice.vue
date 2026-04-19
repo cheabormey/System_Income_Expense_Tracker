@@ -141,6 +141,14 @@
       @refresh="fetchLedgerData"
     />
 
+    <DeleteConfirmation
+      :visible="showDeleteModal"
+      :deleteId="deleteId"
+      :elementName="'Invoice'"
+      collectionName="Invoice"
+      @onCloseDelete="handleDeleteClose"
+    />
+
     <Toast />
   </div>
 </template>
@@ -153,12 +161,20 @@ import Column from "primevue/column";
 import Button from "primevue/button";
 import Toast from "primevue/toast";
 import InvoiceForm from "../components/Modal/InvoiceForm.vue";
+import DeleteConfirmation from "@/components/DeleteComfirmation.vue";
 import { getDocument } from "@/composable/getDocument";
 import { useDocument } from "@/composable/useDocument";
 import { useAppToast } from "@/helper/toastHelper";
 
 export default {
-  components: { DataTable, Column, Button, Toast, InvoiceForm },
+  components: {
+    DataTable,
+    Column,
+    Button,
+    Toast,
+    InvoiceForm,
+    DeleteConfirmation,
+  },
   setup() {
     const router = useRouter();
 
@@ -172,6 +188,10 @@ export default {
     const displayDialog = ref(false);
     const isEditMode = ref(false);
     const selectedDoc = ref(null);
+
+    // Custom Delete Modal refs
+    const showDeleteModal = ref(false);
+    const deleteId = ref(null);
 
     const fetchLedgerData = async () => {
       const res = await getDocs("Invoice");
@@ -244,21 +264,22 @@ export default {
       }
     };
 
-    const deleteEntry = async (entry) => {
+    // Trigger Custom Modal for Deletion
+    const deleteEntry = (entry) => {
       if (entry.isUnchanged) {
         showToast("error", "Cannot delete an unchanged invoice.");
         return;
       }
+      deleteId.value = entry._id;
+      showDeleteModal.value = true;
+    };
 
-      if (confirm("Are you sure you want to delete this invoice?")) {
-        try {
-          await deleteDoc("Invoice", entry._id);
-          showToast("delete", "Invoice deleted successfully.");
-          await fetchLedgerData();
-        } catch (error) {
-          console.error(error);
-          showToast("error", "Failed to delete the invoice.");
-        }
+    // Handle closure of the delete confirmation modal
+    const handleDeleteClose = async (status) => {
+      showDeleteModal.value = false;
+      if (status && status !== "cancel" && status !== false) {
+        showToast("delete", "Invoice deleted successfully.");
+        await fetchLedgerData();
       }
     };
 
@@ -608,12 +629,15 @@ export default {
       displayDialog,
       isEditMode,
       selectedDoc,
+      showDeleteModal,
+      deleteId,
       formatDate,
       formatCurrency,
       openNew,
       editEntry,
       markAsPaid,
       deleteEntry,
+      handleDeleteClose,
       deleteSelectedEntries,
       fetchLedgerData,
       printSelectedEntries,

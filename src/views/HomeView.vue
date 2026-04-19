@@ -356,29 +356,47 @@ const fetchUserData = async () => {
 
 const fetchDashboardTotals = async () => {
   try {
-    // Fetch Income (Assumed from LotteryChiefBalance. You can change this to 'Invoice' if needed)
-    const incomeRes = await getDocs("LotteryChiefBalance");
-    if (incomeRes?.data) {
-      const branchIncomes = incomeRes.data.filter(
-        (item) => item.branchId === branchStore.branchId,
+    const currentBranch = branchStore.branchId || "";
+
+    // 1. Fetch Income from Invoices
+    const invoiceRes = await getDocs("Invoice");
+    if (invoiceRes?.data) {
+      const branchInvoices = invoiceRes.data.filter(
+        (item) =>
+          (item.branchId || "") === currentBranch && item.isUnchanged === true,
       );
-      totalIncome.value = branchIncomes.reduce(
-        (sum, item) => sum + (Number(item.amount) || 0),
-        0,
-      );
+
+      // Only sum the invoices where Chief won money (totalAmount > 0)
+      totalIncome.value = branchInvoices.reduce((sum, item) => {
+        const amount = Number(item.totalAmount) || 0;
+        return amount > 0 ? sum + amount : sum;
+      }, 0);
     }
 
-    // Fetch Expenses from ChiefExpense
+    // 2. Fetch Expenses from ChiefExpense
     const expenseRes = await getDocs("ChiefExpense");
     if (expenseRes?.data) {
       const branchExpenses = expenseRes.data.filter(
-        (item) => item.branchId === branchStore.branchId,
+        (item) => (item.branchId || "") === currentBranch,
       );
+
+      // Sum all recorded payouts/expenses
       totalExpense.value = branchExpenses.reduce(
         (sum, item) => sum + (Number(item.amount) || 0),
         0,
       );
     }
+
+    // OPTIONAL: If you also have a totalNetBalance variable, you can fetch it like this:
+    /*
+    const balanceRes = await getDocs("LotteryChiefBalance");
+    if (balanceRes?.data) {
+      const activeBalance = balanceRes.data.find(
+        (b) => (b.branchId || "") === currentBranch && b.status === true
+      );
+      totalNetBalance.value = activeBalance ? Number(activeBalance.amount) : 0;
+    }
+    */
   } catch (error) {
     console.error("Failed to fetch dashboard totals", error);
   }

@@ -298,11 +298,11 @@
         </div>
         <div
           class="flex items-center gap-2 cursor-pointer"
-          title="Check this to prevent deletion and record to history"
+          title="Check this to lock the invoice and record finances to balance and expenses"
         >
           <Checkbox v-model="form.isUnchanged" binary inputId="isUnchanged" />
           <label for="isUnchanged" class="font-medium text-red-600 select-none"
-            >Lock Invoice (Unchanged)</label
+            >Lock Invoice (Commits to Balance & Expenses)</label
           >
         </div>
       </section>
@@ -530,56 +530,58 @@ const saveInvoice = async () => {
   }
   loading.value = true;
 
-  const cleanFields = { ...form.value };
+  // IMPORTANT: Ensure the Customer ID is always a pure string.
+  // During an edit, form.value.customerId can be a populated object from the backend.
+  // If we pass that object to an insert function, it triggers a 500 CastError!
+  const targetCustomerId =
+    typeof form.value.customerId === "object"
+      ? form.value.customerId?._id
+      : form.value.customerId;
 
-  // Transform lotteryPlays array back to Map object for MongoDB Schema compliance
-  cleanFields.lotteryPlays = Object.fromEntries(
-    form.value.lotteryPlays.map((p, i) => [`play_${i}`, p]),
-  );
-
-  cleanFields.branchId = branchStore.branchId;
-
-  delete cleanFields._id;
-  delete cleanFields.__v;
-  delete cleanFields.createdAt;
-  delete cleanFields.createdBy;
+  // 1. Ensure all schema defaults are present to prevent API 500 errors on inserts
+  const baseFields = {
+    branchId: branchStore.branchId || "",
+    customerId: targetCustomerId,
+    playDate: form.value.playDate,
+    lotteryPlays: Object.fromEntries(
+      form.value.lotteryPlays.map((play, index) => [
+        `play_${index}`,
+        {
+          categoryId: play.categoryId,
+          productId: play.productId,
+          title: play.title,
+          twoDigitNumber: play.twoDigitNumber,
+          threeDigitNumber: play.threeDigitNumber,
+          twoDigitAmount: play.twoDigitAmount,
+          threeDigitAmount: play.threeDigitAmount,
+          isTwoNumber: play.isTwoNumber,
+          isThreeNumber: play.isThreeNumber,
+        },
+      ]),
+    ),
+    finalTwoAmount: 0, // Fallback for backend schema validation
+    finalThreeAmount: 0, // Fallback for backend schema validation
+    isChiefLotteryWin: false, // Fallback for backend schema validation
+    totalAmount: form.value.totalAmount,
+    deptAmount: form.value.deptAmount,
+    description: form.value.description,
+    isDebt: form.value.isDebt,
+    isUnchanged: form.value.isUnchanged,
+  };
 
   const payload = {
     fields: {
-      branchId: branchStore.branchId,
-      customerId: form.value.customerId,
-      playDate: form.value.playDate,
-      lotteryPlays: Object.fromEntries(
-        form.value.lotteryPlays.map((play, index) => [
-          `play_${index}`,
-          {
-            categoryId: play.categoryId,
-            productId: play.productId,
-            title: play.title,
-            twoDigitNumber: play.twoDigitNumber,
-            threeDigitNumber: play.threeDigitNumber,
-            twoDigitAmount: play.twoDigitAmount,
-            threeDigitAmount: play.threeDigitAmount,
-            isTwoNumber: play.isTwoNumber,
-            isThreeNumber: play.isThreeNumber,
-          },
-        ]),
-      ),
-      totalAmount: form.value.totalAmount,
-      deptAmount: form.value.deptAmount,
-      description: form.value.description,
-      isDebt: form.value.isDebt,
-      isUnchanged: form.value.isUnchanged,
-      updatedBy: branchStore.userId,
-      updatedAt: props.isEditDoc ? new Date() : null,
-      ...(props.isEditDoc ? {} : { createdBy: branchStore.userId }),
+      ...baseFields,
+      ...(props.isEditDoc
+        ? { updatedAt: new Date(), updatedBy: branchStore.userId || "" }
+        : { createdAt: new Date(), createdBy: branchStore.userId || "" }),
     },
   };
 
   try {
     let savedInvoiceId = null;
 
-    // 1. Save the Invoice
+    // 2. Save the main Invoice
     if (props.isEditDoc && props.doc?._id) {
       await updateDoc("Invoice", props.doc._id, payload);
       savedInvoiceId = props.doc._id;
@@ -590,104 +592,102 @@ const saveInvoice = async () => {
       showToast("create", "Invoice created successfully.");
     }
 
-    // 2. SCHEMA RULE: isUnchanged creates a duplicate backup in InvoiceRecord
-    if (form.value.isUnchanged) {
-      await insertDoc("InvoiceRecord", {
-        fields: { ...payload.fields, originalInvoiceId: savedInvoiceId },
-      });
-    }
-
     // 3. BALANCE & EXPENSE AUTOMATION LOGIC
-    // Calculate difference if editing, to ensure we only apply the delta to the master balance
-    const newNetTotal = Number(form.value.totalAmount) || 0;
-    const oldNetTotal = props.isEditDoc
-      ? Number(props.doc?.totalAmount) || 0
-      : 0;
-    const balanceDelta = newNetTotal - oldNetTotal;
+    // We calculate effective amounts. If "Lock" is NOT checked, effective weight is 0.
+    // If it is checked, the effective weight is the total amount.
+    // This makes sure checking/unchecking the box cleanly adds or reverses the financial records without duplication!
+    if (form.value.isUnchanged) {
+      const newNetTotal = Number(form.value.totalAmount) || 0;
+      const oldNetTotal =
+        props.isEditDoc && props.doc?.isUnchanged
+          ? Number(props.doc?.totalAmount) || 0
+          : 0;
+      const balanceDelta = newNetTotal - oldNetTotal;
 
-    let expenseId = null;
+      if (balanceDelta !== 0) {
+        let expenseId = null;
 
-    // If the delta resulted in money leaving the Chief (balanceDelta is negative),
-    // it automatically generates a ChiefExpense record.
-    if (balanceDelta < 0) {
-      const targetCustomerId =
-        typeof form.value.customerId === "object"
-          ? form.value.customerId._id
-          : form.value.customerId;
+        // If the delta resulted in money leaving the Chief (balanceDelta is negative),
+        // it automatically generates a ChiefExpense record.
+        if (balanceDelta < 0) {
+          const expensePayload = {
+            fields: {
+              branchId: branchStore.branchId || "",
+              customerId: targetCustomerId,
+              paymentDate: form.value.playDate || new Date(),
+              amount: Math.abs(balanceDelta),
+              description: `Auto-generated expense from Invoice ${
+                props.isEditDoc ? "update" : "creation"
+              }. Invoice ID: ${savedInvoiceId}`,
+              createdAt: new Date(),
+              createdBy: branchStore.userId || "",
+            },
+          };
+          const expenseRes = await insertDoc("ChiefExpense", expensePayload);
+          expenseId =
+            expenseRes?._id || expenseRes?.data?._id || expenseRes?.id;
+        }
 
-      const expensePayload = {
-        fields: {
-          branchId: branchStore.branchId,
-          customerId: targetCustomerId,
-          paymentDate: form.value.playDate || new Date(),
-          amount: Math.abs(balanceDelta),
-          description: `Auto-generated expense from Invoice ${
-            props.isEditDoc ? "update" : "creation"
-          }. Invoice ID: ${savedInvoiceId}`,
-          createdAt: new Date(),
-          createdBy: branchStore.userId,
-        },
-      };
-      const expenseRes = await insertDoc("ChiefExpense", expensePayload);
-      expenseId = expenseRes?._id || expenseRes?.data?._id || expenseRes?.id;
-    }
+        // Apply the net balance calculation delta to LotteryChiefBalance
+        const balanceRes = await getDocs("LotteryChiefBalance");
+        let activeBalance = balanceRes.data?.find(
+          (b) => b.branchId === branchStore.branchId && b.status === true,
+        );
 
-    // Apply the net balance calculation delta to LotteryChiefBalance
-    if (balanceDelta !== 0) {
-      const balanceRes = await getDocs("LotteryChiefBalance");
-      let activeBalance = balanceRes.data?.find(
-        (b) => b.branchId === branchStore.branchId && b.status === true,
-      );
+        if (activeBalance) {
+          let updatedInvoiceIds = Array.isArray(activeBalance.invoiceIds)
+            ? [...activeBalance.invoiceIds]
+            : [];
+          if (
+            !updatedInvoiceIds.includes(savedInvoiceId) &&
+            form.value.isUnchanged
+          ) {
+            updatedInvoiceIds.push(savedInvoiceId);
+          }
 
-      if (activeBalance) {
-        let updatedInvoiceIds = Array.isArray(activeBalance.invoiceIds)
-          ? [...activeBalance.invoiceIds]
-          : [];
-        if (!updatedInvoiceIds.includes(savedInvoiceId))
-          updatedInvoiceIds.push(savedInvoiceId);
+          const updateFields = {
+            amount: Number(activeBalance.amount || 0) + balanceDelta,
+            invoiceIds: updatedInvoiceIds,
+            updatedAt: new Date(),
+            updatedBy: branchStore.userId || "",
+            // Fallback to empty string to prevent validation errors if it's a positive gain with no expense
+            lastChiefExpenseId:
+              expenseId || activeBalance.lastChiefExpenseId || "",
+          };
 
-        const updateFields = {
-          amount: Number(activeBalance.amount || 0) + balanceDelta,
-          invoiceIds: updatedInvoiceIds,
-          updatedAt: new Date(),
-          updatedBy: branchStore.userId,
-        };
-        // Link the newly created expense ID to the balance change record
-        if (expenseId) updateFields.lastChiefExpenseId = expenseId;
+          await updateDoc("LotteryChiefBalance", activeBalance._id, {
+            fields: updateFields,
+          });
+        } else {
+          // Create new active balance if none exists
+          const newFields = {
+            branchId: branchStore.branchId || "",
+            amount: balanceDelta,
+            invoiceIds: [savedInvoiceId],
+            status: true,
+            createdAt: new Date(),
+            createdBy: branchStore.userId || "",
+            lastChiefExpenseId: expenseId || "", // Must pass empty string to satisfy backend requirements
+          };
 
-        await updateDoc("LotteryChiefBalance", activeBalance._id, {
-          fields: updateFields,
-        });
-      } else {
-        // Create new active balance if none exists
-        const newFields = {
-          branchId: branchStore.branchId,
-          amount: balanceDelta,
-          invoiceIds: [savedInvoiceId],
-          status: true,
-          createdAt: new Date(),
-          createdBy: branchStore.userId,
-        };
-        if (expenseId) newFields.lastChiefExpenseId = expenseId;
-
-        await insertDoc("LotteryChiefBalance", { fields: newFields });
+          await insertDoc("LotteryChiefBalance", { fields: newFields });
+        }
       }
     }
 
     // 4. SCHEMA RULE: deptAmount pushes to CustomerReimburstment
-    const newDeptAmount = Number(form.value.deptAmount) || 0;
-    const oldDeptAmount = props.isEditDoc
-      ? Number(props.doc?.deptAmount) || 0
+    // Same dynamic locking logic applied to Debts
+    const newDeptAmount = form.value.isUnchanged
+      ? Number(form.value.deptAmount) || 0
       : 0;
+    const oldDeptAmount =
+      props.isEditDoc && props.doc?.isUnchanged
+        ? Number(props.doc?.deptAmount) || 0
+        : 0;
     const deptDiff = newDeptAmount - oldDeptAmount;
 
-    if (newDeptAmount > 0 || oldDeptAmount > 0) {
+    if (deptDiff !== 0) {
       const reimRes = await getDocs("CustomerReimburstment");
-
-      const targetCustomerId =
-        typeof form.value.customerId === "object"
-          ? form.value.customerId?._id
-          : form.value.customerId;
 
       let customerReim = reimRes.data?.find((r) => {
         const rCustId =
@@ -701,7 +701,10 @@ const saveInvoice = async () => {
         let updatedInvoiceIds = Array.isArray(customerReim.invoiceIds)
           ? [...customerReim.invoiceIds]
           : [];
-        if (!updatedInvoiceIds.includes(savedInvoiceId) && newDeptAmount > 0) {
+        if (
+          !updatedInvoiceIds.includes(savedInvoiceId) &&
+          form.value.isUnchanged
+        ) {
           updatedInvoiceIds.push(savedInvoiceId);
         }
 
@@ -710,20 +713,20 @@ const saveInvoice = async () => {
             totalDebt: Number(customerReim.totalDebt || 0) + deptDiff,
             invoiceIds: updatedInvoiceIds,
             updatedAt: new Date(),
-            updatedBy: branchStore.userId,
+            updatedBy: branchStore.userId || "",
           },
         });
       } else if (newDeptAmount > 0) {
         await insertDoc("CustomerReimburstment", {
           fields: {
-            branchId: branchStore.branchId,
+            branchId: branchStore.branchId || "",
             customerId: targetCustomerId,
             totalDebt: newDeptAmount,
             invoiceIds: [savedInvoiceId],
-            lastCustomerReturnMoneyId: "",
+            lastCustomerReturnMoneyId: "", // Fallback string to satisfy backend requirements
             status: true,
             createdAt: new Date(),
-            createdBy: branchStore.userId,
+            createdBy: branchStore.userId || "",
           },
         });
       }
