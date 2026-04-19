@@ -91,7 +91,7 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="flex flex-col">
               <label class="text-sm font-medium text-gray-600 mb-1"
-                >Category</label
+                >Category <span class="text-red-500">*</span></label
               >
               <Dropdown
                 v-model="play.categoryId"
@@ -99,11 +99,21 @@
                 optionLabel="name"
                 optionValue="_id"
                 placeholder="Select Category"
+                :class="{
+                  'p-invalid border-red-500': errors.plays?.[index]?.categoryId,
+                }"
               />
+              <Message
+                v-if="errors.plays?.[index]?.categoryId"
+                severity="error"
+                class="mt-1 m-0 p-2 text-sm"
+                :closable="false"
+                >Category is required</Message
+              >
             </div>
             <div class="flex flex-col">
               <label class="text-sm font-medium text-gray-600 mb-1"
-                >Product</label
+                >Product <span class="text-red-500">*</span></label
               >
               <Dropdown
                 v-model="play.productId"
@@ -111,13 +121,36 @@
                 optionLabel="name"
                 optionValue="_id"
                 placeholder="Select Product"
+                :class="{
+                  'p-invalid border-red-500': errors.plays?.[index]?.productId,
+                }"
               />
+              <Message
+                v-if="errors.plays?.[index]?.productId"
+                severity="error"
+                class="mt-1 m-0 p-2 text-sm"
+                :closable="false"
+                >Product is required</Message
+              >
             </div>
             <div class="flex flex-col">
               <label class="text-sm font-medium text-gray-600 mb-1"
-                >Title</label
+                >Title <span class="text-red-500">*</span></label
               >
-              <InputText v-model="play.title" placeholder="e.g. Morning Play" />
+              <InputText
+                v-model="play.title"
+                placeholder="e.g. Morning Play"
+                :class="{
+                  'p-invalid border-red-500': errors.plays?.[index]?.title,
+                }"
+              />
+              <Message
+                v-if="errors.plays?.[index]?.title"
+                severity="error"
+                class="mt-1 m-0 p-2 text-sm"
+                :closable="false"
+                >Title is required</Message
+              >
             </div>
           </div>
 
@@ -154,8 +187,8 @@
                 />
                 <label
                   :for="'isTwoNum_' + index"
-                  class="text-sm cursor-pointer select-none"
-                  >Is 2D Number?</label
+                  class="text-sm cursor-pointer select-none text-green-700 font-semibold"
+                  >Is Winning 2D Number?</label
                 >
               </div>
             </div>
@@ -191,8 +224,8 @@
                 />
                 <label
                   :for="'isThreeNum_' + index"
-                  class="text-sm cursor-pointer select-none"
-                  >Is 3D Number?</label
+                  class="text-sm cursor-pointer select-none text-green-700 font-semibold"
+                  >Is Winning 3D Number?</label
                 >
               </div>
             </div>
@@ -210,13 +243,17 @@
         >
           <div class="flex flex-col">
             <label class="text-sm font-semibold mb-1 text-gray-700"
-              >Total Invoice Amount (Auto-Calculated)</label
+              >Net Total Invoice Amount (Auto-Calculated)</label
             >
             <InputNumber
               v-model="form.totalAmount"
               placeholder="0 ៛"
               mode="decimal"
-              inputClass="font-bold text-green-600 bg-gray-100 cursor-not-allowed"
+              :inputClass="
+                form.totalAmount < 0
+                  ? 'font-bold text-red-600 bg-gray-100 cursor-not-allowed'
+                  : 'font-bold text-green-600 bg-gray-100 cursor-not-allowed'
+              "
               readonly
               disabled
             />
@@ -251,19 +288,6 @@
       <section
         class="flex flex-wrap gap-6 mt-4 bg-gray-100 p-3 rounded-lg border"
       >
-        <div
-          class="flex items-center gap-2 cursor-pointer"
-          title="Check if the Chief won this bet"
-        >
-          <Checkbox
-            v-model="form.isChiefLotteryWin"
-            binary
-            inputId="chiefWin"
-          />
-          <label for="chiefWin" class="font-medium text-[#045B1B] select-none"
-            >Chief Lottery Win</label
-          >
-        </div>
         <div class="flex items-center gap-2 cursor-pointer">
           <Checkbox v-model="form.isDebt" binary inputId="isDebtFlag" />
           <label
@@ -336,7 +360,7 @@ const customers = ref([]);
 const categories = ref([]);
 const products = ref([]);
 
-const errors = ref({ customerId: false, playDate: false });
+const errors = ref({ customerId: false, playDate: false, plays: [] });
 
 const form = ref({
   customerId: null,
@@ -345,7 +369,6 @@ const form = ref({
   totalAmount: 0,
   deptAmount: 0,
   description: "",
-  isChiefLotteryWin: false,
   isDebt: false,
   isUnchanged: false,
 });
@@ -373,6 +396,9 @@ watch(
       if (props.isEditDoc && props.doc) {
         form.value = {
           ...props.doc,
+          playDate: props.doc.playDate
+            ? new Date(props.doc.playDate)
+            : new Date(),
           lotteryPlays: Array.isArray(props.doc.lotteryPlays)
             ? [...props.doc.lotteryPlays]
             : Object.values(props.doc.lotteryPlays || {}),
@@ -385,7 +411,6 @@ watch(
           totalAmount: 0,
           deptAmount: 0,
           description: "",
-          isChiefLotteryWin: false,
           isDebt: false,
           isUnchanged: false,
         };
@@ -394,19 +419,31 @@ watch(
   },
 );
 
-// Auto-calculate Total Invoice Amount
+// Auto-calculate Net Total Invoice Amount (Bet Amounts minus Winning Payouts)
 watch(
   () => form.value.lotteryPlays,
   (plays) => {
-    let total = 0;
+    let betTotal = 0;
+    let winTotal = 0;
+
     if (plays && plays.length > 0) {
       plays.forEach((play) => {
-        total +=
-          (Number(play.twoDigitAmount) || 0) +
-          (Number(play.threeDigitAmount) || 0);
+        // Calculate incoming bet money
+        betTotal += (Number(play.twoDigitAmount) || 0) * 1;
+        betTotal += (Number(play.threeDigitAmount) || 0) * 0.65;
+
+        // Calculate outgoing payout money
+        if (play.isTwoNumber) {
+          winTotal += (Number(play.twoDigitNumber) || 0) * 100;
+        }
+        if (play.isThreeNumber) {
+          winTotal += (Number(play.threeDigitNumber) || 0) * 600;
+        }
       });
     }
-    form.value.totalAmount = total;
+
+    // Net total. If negative, it means the Chief lost money on this invoice
+    form.value.totalAmount = betTotal - winTotal;
   },
   { deep: true },
 );
@@ -425,19 +462,49 @@ const addPlay = () => {
   });
 };
 
-const removePlay = (index) => form.value.lotteryPlays.splice(index, 1);
+const removePlay = (index) => {
+  form.value.lotteryPlays.splice(index, 1);
+  if (errors.value.plays.length > index) {
+    errors.value.plays.splice(index, 1);
+  }
+};
 
 const validateForm = () => {
   let isValid = true;
-  errors.value = { customerId: false, playDate: false };
+  errors.value = { customerId: false, playDate: false, plays: [] };
+
   if (!form.value.customerId) {
     errors.value.customerId = true;
     isValid = false;
   }
+
   if (!form.value.playDate) {
     errors.value.playDate = true;
     isValid = false;
   }
+
+  // Validate dynamically added plays
+  if (form.value.lotteryPlays.length > 0) {
+    form.value.lotteryPlays.forEach((play, index) => {
+      const playErrors = { categoryId: false, productId: false, title: false };
+
+      if (!play.categoryId) {
+        playErrors.categoryId = true;
+        isValid = false;
+      }
+      if (!play.productId) {
+        playErrors.productId = true;
+        isValid = false;
+      }
+      if (!play.title || !play.title.trim()) {
+        playErrors.title = true;
+        isValid = false;
+      }
+
+      errors.value.plays[index] = playErrors;
+    });
+  }
+
   return isValid;
 };
 
@@ -449,16 +516,18 @@ const handleClose = () => {
     totalAmount: 0,
     deptAmount: 0,
     description: "",
-    isChiefLotteryWin: false,
     isDebt: false,
     isUnchanged: false,
   };
-  errors.value = { customerId: false, playDate: false };
+  errors.value = { customerId: false, playDate: false, plays: [] };
   emit("onClose");
 };
 
 const saveInvoice = async () => {
-  if (!validateForm()) return;
+  if (!validateForm()) {
+    showToast("error", "Please fill in all required fields.");
+    return;
+  }
   loading.value = true;
 
   const cleanFields = { ...form.value };
@@ -468,10 +537,8 @@ const saveInvoice = async () => {
     form.value.lotteryPlays.map((p, i) => [`play_${i}`, p]),
   );
 
-  // Auto assign branchId from the global store
   cleanFields.branchId = branchStore.branchId;
 
-  // Clean up system fields before sending to the backend
   delete cleanFields._id;
   delete cleanFields.__v;
   delete cleanFields.createdAt;
@@ -501,7 +568,6 @@ const saveInvoice = async () => {
       totalAmount: form.value.totalAmount,
       deptAmount: form.value.deptAmount,
       description: form.value.description,
-      isChiefLotteryWin: form.value.isChiefLotteryWin,
       isDebt: form.value.isDebt,
       isUnchanged: form.value.isUnchanged,
       updatedBy: branchStore.userId,
@@ -531,15 +597,47 @@ const saveInvoice = async () => {
       });
     }
 
-    // 3. SCHEMA RULE: isChiefLotteryWin ADDS (+) to LotteryChiefBalance (Wallet)
-    if (form.value.isChiefLotteryWin) {
+    // 3. BALANCE & EXPENSE AUTOMATION LOGIC
+    // Calculate difference if editing, to ensure we only apply the delta to the master balance
+    const newNetTotal = Number(form.value.totalAmount) || 0;
+    const oldNetTotal = props.isEditDoc
+      ? Number(props.doc?.totalAmount) || 0
+      : 0;
+    const balanceDelta = newNetTotal - oldNetTotal;
+
+    let expenseId = null;
+
+    // If the delta resulted in money leaving the Chief (balanceDelta is negative),
+    // it automatically generates a ChiefExpense record.
+    if (balanceDelta < 0) {
+      const targetCustomerId =
+        typeof form.value.customerId === "object"
+          ? form.value.customerId._id
+          : form.value.customerId;
+
+      const expensePayload = {
+        fields: {
+          branchId: branchStore.branchId,
+          customerId: targetCustomerId,
+          paymentDate: form.value.playDate || new Date(),
+          amount: Math.abs(balanceDelta),
+          description: `Auto-generated expense from Invoice ${
+            props.isEditDoc ? "update" : "creation"
+          }. Invoice ID: ${savedInvoiceId}`,
+          createdAt: new Date(),
+          createdBy: branchStore.userId,
+        },
+      };
+      const expenseRes = await insertDoc("ChiefExpense", expensePayload);
+      expenseId = expenseRes?._id || expenseRes?.data?._id || expenseRes?.id;
+    }
+
+    // Apply the net balance calculation delta to LotteryChiefBalance
+    if (balanceDelta !== 0) {
       const balanceRes = await getDocs("LotteryChiefBalance");
       let activeBalance = balanceRes.data?.find(
         (b) => b.branchId === branchStore.branchId && b.status === true,
       );
-
-      // Sum up the total of this invoice to add to the wallet
-      const currentInvoiceTotal = Number(form.value.totalAmount) || 0;
 
       if (activeBalance) {
         let updatedInvoiceIds = Array.isArray(activeBalance.invoiceIds)
@@ -548,21 +646,81 @@ const saveInvoice = async () => {
         if (!updatedInvoiceIds.includes(savedInvoiceId))
           updatedInvoiceIds.push(savedInvoiceId);
 
-        // Add the new total to the Chief's Wallet
+        const updateFields = {
+          amount: Number(activeBalance.amount || 0) + balanceDelta,
+          invoiceIds: updatedInvoiceIds,
+          updatedAt: new Date(),
+          updatedBy: branchStore.userId,
+        };
+        // Link the newly created expense ID to the balance change record
+        if (expenseId) updateFields.lastChiefExpenseId = expenseId;
+
         await updateDoc("LotteryChiefBalance", activeBalance._id, {
+          fields: updateFields,
+        });
+      } else {
+        // Create new active balance if none exists
+        const newFields = {
+          branchId: branchStore.branchId,
+          amount: balanceDelta,
+          invoiceIds: [savedInvoiceId],
+          status: true,
+          createdAt: new Date(),
+          createdBy: branchStore.userId,
+        };
+        if (expenseId) newFields.lastChiefExpenseId = expenseId;
+
+        await insertDoc("LotteryChiefBalance", { fields: newFields });
+      }
+    }
+
+    // 4. SCHEMA RULE: deptAmount pushes to CustomerReimburstment
+    const newDeptAmount = Number(form.value.deptAmount) || 0;
+    const oldDeptAmount = props.isEditDoc
+      ? Number(props.doc?.deptAmount) || 0
+      : 0;
+    const deptDiff = newDeptAmount - oldDeptAmount;
+
+    if (newDeptAmount > 0 || oldDeptAmount > 0) {
+      const reimRes = await getDocs("CustomerReimburstment");
+
+      const targetCustomerId =
+        typeof form.value.customerId === "object"
+          ? form.value.customerId?._id
+          : form.value.customerId;
+
+      let customerReim = reimRes.data?.find((r) => {
+        const rCustId =
+          typeof r.customerId === "object" ? r.customerId?._id : r.customerId;
+        return (
+          rCustId === targetCustomerId && r.branchId === branchStore.branchId
+        );
+      });
+
+      if (customerReim) {
+        let updatedInvoiceIds = Array.isArray(customerReim.invoiceIds)
+          ? [...customerReim.invoiceIds]
+          : [];
+        if (!updatedInvoiceIds.includes(savedInvoiceId) && newDeptAmount > 0) {
+          updatedInvoiceIds.push(savedInvoiceId);
+        }
+
+        await updateDoc("CustomerReimburstment", customerReim._id, {
           fields: {
-            amount: Number(activeBalance.amount || 0) + currentInvoiceTotal,
+            totalDebt: Number(customerReim.totalDebt || 0) + deptDiff,
             invoiceIds: updatedInvoiceIds,
             updatedAt: new Date(),
             updatedBy: branchStore.userId,
           },
         });
-      } else {
-        await insertDoc("LotteryChiefBalance", {
+      } else if (newDeptAmount > 0) {
+        await insertDoc("CustomerReimburstment", {
           fields: {
             branchId: branchStore.branchId,
-            amount: currentInvoiceTotal,
+            customerId: targetCustomerId,
+            totalDebt: newDeptAmount,
             invoiceIds: [savedInvoiceId],
+            lastCustomerReturnMoneyId: "",
             status: true,
             createdAt: new Date(),
             createdBy: branchStore.userId,

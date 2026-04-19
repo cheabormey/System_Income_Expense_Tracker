@@ -45,7 +45,7 @@
                 ></i>
               </div>
 
-              <form @submit.prevent="handleSubmit" class="p-6 space-y-4">
+              <form @submit.prevent="handleSubmit" class="p-6 space-y-5">
                 <!-- Customer Dropdown -->
                 <div>
                   <label class="block text-sm font-medium mb-1">
@@ -60,12 +60,37 @@
                     class="w-full"
                     filter
                     required
+                    @change="onCustomerChange"
                   />
                 </div>
 
-                <!-- Total Debt -->
+                <!-- Invoice IDs (MultiSelect Array) -->
                 <div>
-                  <label class="block text-sm font-medium mb-1">
+                  <label class="block text-sm font-medium mb-1 text-blue-700"
+                    >Associated Debt Invoices</label
+                  >
+                  <MultiSelect
+                    v-model="form.invoiceIds"
+                    :options="invoiceOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select Invoices to Calculate Debt"
+                    display="chip"
+                    class="w-full"
+                    filter
+                    :disabled="!form.customerId"
+                  />
+                  <small
+                    class="text-gray-500 mt-1 block"
+                    v-if="!form.customerId"
+                  >
+                    Please select a customer first to see their invoices.
+                  </small>
+                </div>
+
+                <!-- Total Debt -->
+                <div class="p-4 bg-red-50 border border-red-100 rounded-lg">
+                  <label class="block text-sm font-bold text-red-800 mb-1">
                     Total Debt <span class="text-red-500">*</span>
                   </label>
                   <InputNumber
@@ -75,41 +100,14 @@
                     :maxFractionDigits="0"
                     useGrouping
                     suffix=" ៛"
-                    class="w-full"
+                    class="w-full font-bold"
+                    inputClass="font-bold text-red-600"
                     placeholder="0 ៛"
                     required
                   />
-                </div>
-
-                <!-- Invoice IDs (MultiSelect Array) -->
-                <div>
-                  <label class="block text-sm font-medium mb-1"
-                    >Associated Invoices</label
-                  >
-                  <MultiSelect
-                    v-model="form.invoiceIds"
-                    :options="invoiceOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    placeholder="Select Invoices"
-                    display="chip"
-                    class="w-full"
-                    filter
-                  />
-                </div>
-
-                <!-- Last Return Money ID (Read Only usually, pointing to latest payment) -->
-                <div>
-                  <label class="block text-sm font-medium mb-1"
-                    >Last Return Money ID</label
-                  >
-                  <input
-                    v-model="form.lastCustomerReturnMoneyId"
-                    type="text"
-                    class="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
-                    placeholder="Auto-filled from returns"
-                    disabled
-                  />
+                  <small class="text-red-600 mt-1 block font-medium">
+                    This amount auto-calculates when you select invoices.
+                  </small>
                 </div>
 
                 <!-- Branch ID -->
@@ -151,7 +149,7 @@
 </template>
 
 <script>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import {
   Dialog,
   DialogPanel,
@@ -190,14 +188,49 @@ export default {
     const loading = ref(false);
 
     const customers = ref([]);
-    const invoiceOptions = ref([]);
+    const allInvoices = ref([]); // Store all invoices here
 
     const form = ref({
       customerId: null,
       totalDebt: null,
       invoiceIds: [],
-      lastCustomerReturnMoneyId: "",
       branchId: "",
+    });
+
+    // Automatically filter invoices based on the selected customer
+    const invoiceOptions = computed(() => {
+      if (!form.value.customerId) return [];
+
+      return allInvoices.value
+        .filter((inv) => {
+          // Check if invoice belongs to selected customer
+          const invCustId =
+            typeof inv.customerId === "object"
+              ? inv.customerId?._id
+              : inv.customerId;
+
+          // Only show invoices that actually have a debtAmount > 0, OR if they are already selected (for editing)
+          const hasDebt = Number(inv.deptAmount) > 0;
+          const isAlreadySelected = form.value.invoiceIds.includes(inv._id);
+
+          return (
+            invCustId === form.value.customerId &&
+            (hasDebt || isAlreadySelected)
+          );
+        })
+        .map((inv) => {
+          const shortId = inv._id ? inv._id.substring(0, 5).toUpperCase() : "";
+          const debtAmt = inv.deptAmount
+            ? Number(inv.deptAmount).toLocaleString("en-US") + " ៛"
+            : "0 ៛";
+          const playDate = inv.playDate
+            ? new Date(inv.playDate).toLocaleDateString("en-GB")
+            : "";
+          return {
+            label: `[${shortId}] - ${playDate} - Debt: ${debtAmt}`,
+            value: inv._id,
+          };
+        });
     });
 
     const fetchData = async () => {
@@ -207,22 +240,32 @@ export default {
           getDocs("Invoice"),
         ]);
         if (custRes?.data) customers.value = custRes.data;
-
-        if (invRes?.data) {
-          invoiceOptions.value = invRes.data.map((inv) => {
-            const shortId = inv._id
-              ? inv._id.substring(0, 5).toUpperCase()
-              : "";
-            const amt = inv.totalAmount
-              ? Number(inv.totalAmount).toLocaleString("en-US") + " ៛"
-              : "0 ៛";
-            return { label: `[${shortId}] - ${amt}`, value: inv._id };
-          });
-        }
+        if (invRes?.data) allInvoices.value = invRes.data;
       } catch (error) {
         console.error("Failed to fetch data:", error);
       }
     };
+
+    // Auto-calculate Total Debt when invoices are selected
+    watch(
+      () => form.value.invoiceIds,
+      (newIds, oldIds) => {
+        // Prevent clearing the manual totalDebt during the very first modal open if it's an edit
+        if (props.isEditDoc && !oldIds) return;
+
+        let calculatedDebt = 0;
+        newIds.forEach((id) => {
+          const inv = allInvoices.value.find((i) => i._id === id);
+          if (inv) {
+            calculatedDebt += Number(inv.deptAmount) || 0;
+          }
+        });
+
+        // Automatically fill the Total Debt field with the calculated sum
+        form.value.totalDebt = calculatedDebt;
+      },
+      { deep: true },
+    );
 
     watch(
       () => props.visible,
@@ -232,22 +275,29 @@ export default {
           if (props.doc && props.isEditDoc) {
             form.value = {
               ...props.doc,
+              customerId:
+                typeof props.doc.customerId === "object"
+                  ? props.doc.customerId?._id
+                  : props.doc.customerId,
               invoiceIds: props.doc.invoiceIds || [],
-              lastCustomerReturnMoneyId:
-                props.doc.lastCustomerReturnMoneyId || "",
             };
           } else {
             form.value = {
               customerId: null,
               totalDebt: null,
               invoiceIds: [],
-              lastCustomerReturnMoneyId: "",
               branchId: branchStore.branchId || "",
             };
           }
         }
       },
     );
+
+    // Clear selected invoices if the customer is changed manually
+    const onCustomerChange = () => {
+      form.value.invoiceIds = [];
+      form.value.totalDebt = 0;
+    };
 
     const handleClose = () => emit("onClose");
 
@@ -298,6 +348,7 @@ export default {
       customers,
       invoiceOptions,
       loading,
+      onCustomerChange,
       handleClose,
       handleSubmit,
     };

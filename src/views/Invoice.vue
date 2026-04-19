@@ -79,6 +79,22 @@
           </template>
         </Column>
 
+        <!-- Debt Amount Column -->
+        <Column field="deptAmount" header="Debt Amount">
+          <template #body="slotProps">
+            <span
+              :class="
+                slotProps.data.deptAmount > 0
+                  ? 'text-red-600 font-semibold'
+                  : 'text-gray-600 font-semibold'
+              "
+            >
+              {{ formatCurrency(slotProps.data.deptAmount) }}
+            </span>
+          </template>
+        </Column>
+
+        <!-- Total Amount Column -->
         <Column field="totalAmount" header="Total Amount">
           <template #body="slotProps">
             <span
@@ -216,7 +232,7 @@ export default {
           await updateDoc("Invoice", id, {
             fields: {
               isDebt: false,
-              debtAmount: 0,
+              deptAmount: 0,
             },
           });
           showToast("update", "Invoice marked as paid.");
@@ -290,24 +306,11 @@ export default {
 
       // Helper to format numbers cleanly for print without currency symbol
       const fmt = (num) => {
-        if (!num) return "0";
+        if (num === null || num === undefined) return "0";
         return Number(num).toLocaleString("en-US", {
-          maximumFractionDigits: 2,
+          maximumFractionDigits: 0, // Removed fraction digits
         });
       };
-
-      // Extract common header data from the first selected entry
-      const firstEntry = selectedEntries.value[0];
-      const entryId = firstEntry._id
-        ? firstEntry._id.substring(0, 5).toUpperCase()
-        : "00000";
-      const customerName = getCustomerName(firstEntry.customerId);
-      const dateStr = firstEntry.playDate
-        ? new Date(firstEntry.playDate).toLocaleDateString("en-GB")
-        : "";
-
-      // Top global header matching the sample structure
-      const globalHeader = `${entryId} ${customerName} ${dateStr}`;
 
       let printContent = `
         <!DOCTYPE html>
@@ -383,24 +386,64 @@ export default {
         </head>
         <body>
           <div class="print-container">
-            <div class="global-header">${globalHeader}</div>
       `;
 
       let sumGrandTotal = 0;
       let sumDebt = 0;
 
-      selectedEntries.value.forEach((entry) => {
+      selectedEntries.value.forEach((entry, index) => {
         const plays = Array.isArray(entry.lotteryPlays)
           ? entry.lotteryPlays
           : Object.values(entry.lotteryPlays || {});
 
-        const twoAmount = Number(entry.finalTwoAmount) || 0;
-        const threeAmount = Number(entry.finalThreeAmount) || 0;
-        const debtAmt = Number(entry.debtAmount) || 0;
-        const totalAmt = Number(entry.totalAmount) || 0;
+        // Dynamically calculate 2D and 3D amount sums and payouts
+        let twoAmount = 0;
+        let threeAmount = 0;
+        let winTwoAmountPlayed = 0;
+        let winThreeAmountPlayed = 0;
 
-        sumGrandTotal += totalAmt;
+        plays.forEach((p) => {
+          const amt2 = Number(p.twoDigitAmount) || 0;
+          const amt3 = Number(p.threeDigitAmount) || 0;
+
+          twoAmount += amt2;
+          threeAmount += amt3;
+
+          // Pull the WINNING AMOUNTS from the twoDigitNumber/threeDigitNumber fields
+          if (p.isTwoNumber) {
+            winTwoAmountPlayed += Number(p.twoDigitNumber) || 0;
+          }
+          if (p.isThreeNumber) {
+            winThreeAmountPlayed += Number(p.threeDigitNumber) || 0;
+          }
+        });
+
+        // Calculations (a, b, c logic)
+        const a = twoAmount * 1; // x 100%
+        const b = threeAmount * 0.65; // x 65%
+        const c = a + b;
+
+        // Payouts for winners
+        const winTwoPayout = winTwoAmountPlayed * 100;
+        const winThreePayout = winThreeAmountPlayed * 600;
+        const totalPayout = winTwoPayout + winThreePayout;
+
+        // Final invoice calculated net total
+        const netTotal = c - totalPayout;
+        const debtAmt = Number(entry.deptAmount) || 0;
+
+        sumGrandTotal += netTotal;
         sumDebt += debtAmt;
+
+        // Build the header specific to this invoice using the shortened ID
+        const entryId = entry._id
+          ? entry._id.substring(0, 5).toUpperCase()
+          : "00000";
+        const customerName = getCustomerName(entry.customerId);
+        const dateStr = entry.playDate
+          ? new Date(entry.playDate).toLocaleDateString("en-GB")
+          : "";
+        const headerText = `${entryId} ${customerName} ${dateStr}`;
 
         // Try to get category name for the header, default to 'វេន'
         let categoryLabel = "វេន";
@@ -409,15 +452,17 @@ export default {
             plays[0].categoryId.name || plays[0].categoryId || "វេន";
         }
 
+        // Map the rows to include the accurate amounts and checkbox logic
         let rowsHtml = plays
           .map(
             (p, i) => `
           <tr>
             <td>(${i + 1})</td>
             <td>${p.title || ""}</td>
-            <td>${p.winTwoNumberType || ""}</td>
-            <td>${p.winThreeNumberType || ""}</td>
-            <td>${p.isTwoNumber ? "10" : ""}</td>
+            <td>${p.twoDigitAmount || ""}</td>
+            <td>${p.threeDigitAmount || ""}</td>
+            <td>${p.isTwoNumber ? p.twoDigitNumber || "" : ""}</td>
+            <td>${p.isThreeNumber ? p.threeDigitNumber || "" : ""}</td>
             <td class="check-icon">✔</td>
           </tr>
         `,
@@ -425,32 +470,57 @@ export default {
           .join("");
 
         if (plays.length === 0) {
-          rowsHtml = `<tr><td colspan="6">No entries found</td></tr>`;
+          rowsHtml = `<tr><td colspan="7">No entries found</td></tr>`;
+        }
+
+        // Add additional summary payout rows if there are winning amounts
+        let winningRowsHtml = "";
+        if (winTwoAmountPlayed > 0) {
+          winningRowsHtml += `
+            <div class="summary-row">
+              <span class="summary-label">ត្រូវ2</span>
+              <span class="summary-calc">${fmt(
+                winTwoAmountPlayed,
+              )} x 100 = -${fmt(winTwoPayout)}</span>
+            </div>
+          `;
+        }
+        if (winThreeAmountPlayed > 0) {
+          winningRowsHtml += `
+            <div class="summary-row">
+              <span class="summary-label">ត្រូវ3</span>
+              <span class="summary-calc">${fmt(
+                winThreeAmountPlayed,
+              )} x 600 = -${fmt(winThreePayout)}</span>
+            </div>
+          `;
         }
 
         // Determine if total is positive (មេស៊ី) or negative (មេសង)
         let totalDisplayHtml = "";
-        if (totalAmt < 0) {
+        if (netTotal < 0) {
           totalDisplayHtml = `<div class="total-red">មេសង: ${fmt(
-            totalAmt,
-          )} = (${fmt(Math.abs(totalAmt))})</div>`;
+            netTotal,
+          )}</div>`;
         } else {
           totalDisplayHtml = `<div class="total-blue">មេស៊ី: = ${fmt(
-            totalAmt,
+            netTotal,
           )}</div>`;
         }
 
         printContent += `
           <div class="receipt-wrapper">
             <div class="receipt-inner">
+              <div class="global-header">${headerText}</div>
               <table>
                 <thead>
                   <tr>
-                    <th>${categoryLabel}</th>
+                    <th>ល.រ</th>
                     <th>លេខ កូដ</th>
                     <th>2លេខ</th>
                     <th>3លេខ</th>
                     <th>ត្រូវ2</th>
+                    <th>ត្រូវ3</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -462,15 +532,16 @@ export default {
                 <div class="summary-row">
                   <span class="summary-label">2លេខ</span>
                   <span class="summary-calc">${fmt(twoAmount)} x 100% = ${fmt(
-          twoAmount,
+          a,
         )}</span>
                 </div>
                 <div class="summary-row">
                   <span class="summary-label">3លេខ</span>
                   <span class="summary-calc">${fmt(threeAmount)} x 65% = ${fmt(
-          threeAmount * 0.65,
+          b,
         )}</span>
                 </div>
+                ${winningRowsHtml}
                 ${
                   debtAmt
                     ? `

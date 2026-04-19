@@ -90,7 +90,14 @@
             </td>
 
             <!-- Updated to format Currency properly -->
-            <td class="px-6 py-4 text-rose-600 font-bold">
+            <td
+              class="px-6 py-4 font-bold"
+              :class="
+                Math.max(0, Number(item.totalDebt)) === 0
+                  ? 'text-green-600'
+                  : 'text-rose-600'
+              "
+            >
               {{ formatCurrency(item.totalDebt) }}
             </td>
 
@@ -244,11 +251,14 @@ export default {
       return customer ? customer.username : id;
     };
 
-    // Helper function for currency formatting
+    // Helper function for currency formatting (Caps at 0, no negative numbers allowed)
     const formatCurrency = (val) => {
       if (val === null || val === undefined) return "0 ៛";
+
+      // Use Math.max(0, val) to ensure any negative debt (overpayment) displays as 0
+      const safeVal = Math.max(0, Number(val));
       return (
-        Number(val).toLocaleString("en-US", { maximumFractionDigits: 0 }) + " ៛"
+        safeVal.toLocaleString("en-US", { maximumFractionDigits: 0 }) + " ៛"
       );
     };
 
@@ -273,6 +283,7 @@ export default {
       formatDate,
       getCustomerName,
       formatCurrency,
+      Math,
     };
   },
 };

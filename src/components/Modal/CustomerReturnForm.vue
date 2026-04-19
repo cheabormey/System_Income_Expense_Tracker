@@ -61,6 +61,21 @@
                     filter
                     required
                   />
+
+                  <!-- Debt Display Banner -->
+                  <div
+                    v-if="form.customerId"
+                    class="mt-3 p-3 bg-red-50 border border-red-100 rounded-lg flex flex-col gap-1"
+                  >
+                    <div class="flex justify-between items-center text-sm">
+                      <span class="font-medium text-gray-700"
+                        >Current Debt:</span
+                      >
+                      <span class="font-bold text-red-600">
+                        {{ (currentDebt || 0).toLocaleString("en-US") }} ៛
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Amount returned -->
@@ -79,6 +94,7 @@
                     required
                     placeholder="0 ៛"
                     class="w-full"
+                    inputClass="font-bold text-green-700"
                   />
                 </div>
 
@@ -98,7 +114,7 @@
                 <!-- Status -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1"
-                    >Status</label
+                    >Status (Auto Updates based on Amount)</label
                   >
                   <Dropdown
                     v-model="form.status"
@@ -138,7 +154,7 @@
 </template>
 
 <script>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import {
   Dialog,
   DialogPanel,
@@ -172,31 +188,83 @@ export default {
     const { getDocs } = getDocument();
     const branchStore = useBranchStore();
     const { showToast } = useAppToast();
+
     const loading = ref(false);
     const customers = ref([]);
+    const reimbursements = ref([]);
 
     const form = ref({
       customerId: null,
       amount: null,
       returnDate: new Date().toISOString().substr(0, 10),
-      status: true,
+      status: false, // Default to Pending
       branchId: branchStore.branchId || "",
     });
 
-    const fetchCustomers = async () => {
+    // Fetch both Customers and Reimbursements to calculate current debt
+    const fetchData = async () => {
       try {
-        const res = await getDocs("Customer");
-        if (res?.data) customers.value = res.data;
+        const [custRes, reimbRes] = await Promise.all([
+          getDocs("Customer"),
+          getDocs("CustomerReimburstment"),
+        ]);
+
+        if (custRes?.data) customers.value = custRes.data;
+        if (reimbRes?.data) reimbursements.value = reimbRes.data;
       } catch (err) {
-        console.error("Failed to fetch customers:", err);
+        console.error("Failed to fetch data:", err);
       }
     };
+
+    // Calculate current debt dynamically based on the selected customer
+    const currentDebt = computed(() => {
+      if (!form.value.customerId) return 0;
+
+      const targetCustomerId = form.value.customerId;
+
+      const customerReimbursement = reimbursements.value.find((r) => {
+        const rCustId =
+          typeof r.customerId === "object" ? r.customerId?._id : r.customerId;
+        return (
+          rCustId === targetCustomerId && r.branchId === branchStore.branchId
+        );
+      });
+
+      // If we found their master debt record, return the total debt amount
+      // We use Math.max(0, debt) so it never shows a negative balance
+      const debt = customerReimbursement
+        ? Number(customerReimbursement.totalDebt || 0)
+        : 0;
+      return Math.max(0, debt);
+    });
+
+    // Preview remaining debt dynamically while the user is typing an amount
+    const remainingDebt = computed(() => {
+      const payingAmount = Number(form.value.amount || 0);
+      // We use Math.max(0, ...) so it never previews a negative remaining debt
+      return Math.max(0, currentDebt.value - payingAmount);
+    });
+
+    // Auto-update status to "Completed" if they are paying off all (or more) of their debt
+    watch(remainingDebt, (newRemaining) => {
+      if (form.value.customerId) {
+        if (
+          form.value.amount !== null &&
+          form.value.amount > 0 &&
+          newRemaining <= 0
+        ) {
+          form.value.status = true; // Completed
+        } else {
+          form.value.status = false; // Pending
+        }
+      }
+    });
 
     watch(
       () => props.visible,
       (isOpen) => {
         if (isOpen) {
-          fetchCustomers();
+          fetchData();
           if (props.isEditDoc && props.doc) {
             form.value = {
               ...props.doc,
@@ -209,7 +277,7 @@ export default {
               customerId: null,
               amount: null,
               returnDate: new Date().toISOString().substr(0, 10),
-              status: true,
+              status: false, // Default to Pending
               branchId: branchStore.branchId,
             };
           }
@@ -259,66 +327,68 @@ export default {
 
         // 2. CLIENT-SIDE REIMBURSEMENT UPDATE (Deduct debt)
         try {
-          const reimbRes = await getDocs("CustomerReimburstment");
+          // Note: using the same reimbursements.value we fetched on load to find the ID
+          const targetCustomerId = form.value.customerId;
+          const targetBranchId = branchStore.branchId;
 
-          if (reimbRes?.data && reimbRes.data.length > 0) {
-            // Robust lookup: ensure both strings and populated objects match correctly
-            const targetCustomerId = form.value.customerId;
-            const targetBranchId = branchStore.branchId;
+          const customerReimbursement = reimbursements.value.find((r) => {
+            const rCustId =
+              typeof r.customerId === "object"
+                ? r.customerId?._id
+                : r.customerId;
+            return (
+              rCustId === targetCustomerId &&
+              (!targetBranchId || r.branchId === targetBranchId)
+            );
+          });
 
-            const customerReimbursement = reimbRes.data.find((r) => {
-              const rCustId =
-                typeof r.customerId === "object"
-                  ? r.customerId?._id
-                  : r.customerId;
-              // If branch filtering is strict, ensure it matches, otherwise fallback to finding the customer's main record
-              const matchesCustomer = rCustId === targetCustomerId;
-              const matchesBranch =
-                !targetBranchId || r.branchId === targetBranchId;
-              return matchesCustomer && matchesBranch;
-            });
+          if (customerReimbursement) {
+            // Convert everything explicitly to Number to prevent string concatenation bugs
+            const oldReturnAmount = props.isEditDoc
+              ? Number(props.doc.amount || 0)
+              : 0;
+            const newReturnAmount = Number(form.value.amount || 0);
 
-            if (customerReimbursement) {
-              // Convert everything explicitly to Number to prevent string concatenation bugs
-              const oldReturnAmount = props.isEditDoc
-                ? Number(props.doc.amount || 0)
-                : 0;
-              const newReturnAmount = Number(form.value.amount || 0);
+            // Calculate the difference. E.g., User paid 100. difference is 100.
+            const paymentDifference = newReturnAmount - oldReturnAmount;
 
-              // Calculate the difference. E.g., User paid 100. difference is 100.
-              const paymentDifference = newReturnAmount - oldReturnAmount;
+            const currentTotalDebt = Number(
+              customerReimbursement.totalDebt || 0,
+            );
 
-              const currentDebt = Number(customerReimbursement.totalDebt || 0);
-              const newTotalDebt = currentDebt - paymentDifference;
+            // Ensure the new total debt doesn't drop below 0 in the database
+            const newTotalDebt = Math.max(
+              0,
+              currentTotalDebt - paymentDifference,
+            );
 
-              // Update the Reimbursement table
-              await updateDoc(
-                "CustomerReimburstment",
-                customerReimbursement._id,
-                {
-                  fields: {
-                    totalDebt: newTotalDebt,
-                    lastCustomerReturnMoneyId: savedReturnId,
-                    updatedAt: new Date(),
-                    updatedBy: branchStore.userId,
-                  },
+            // Update the Reimbursement table
+            await updateDoc(
+              "CustomerReimburstment",
+              customerReimbursement._id,
+              {
+                fields: {
+                  totalDebt: newTotalDebt,
+                  lastCustomerReturnMoneyId: savedReturnId,
+                  updatedAt: new Date(),
+                  updatedBy: branchStore.userId,
                 },
-              );
+              },
+            );
 
-              // Success toast indicating the math worked
-              showToast(
-                "success",
-                `Payment saved! Debt updated from ${currentDebt} ៛ to ${newTotalDebt} ៛`,
-              );
-              console.log(
-                `Debt successfully updated! Old Debt: ${currentDebt}, New Debt: ${newTotalDebt}`,
-              );
-            } else {
-              showToast(
-                "warn",
-                "Payment saved, but no master debt record found for this customer to deduct from.",
-              );
-            }
+            // Success toast indicating the math worked
+            showToast(
+              "success",
+              `Payment saved! Debt updated from ${currentTotalDebt} ៛ to ${newTotalDebt} ៛`,
+            );
+            console.log(
+              `Debt successfully updated! Old Debt: ${currentTotalDebt}, New Debt: ${newTotalDebt}`,
+            );
+          } else {
+            showToast(
+              "warn",
+              "Payment saved, but no master debt record found for this customer to deduct from.",
+            );
           }
         } catch (balanceErr) {
           console.error("Failed to update reimbursement debt:", balanceErr);
@@ -337,7 +407,15 @@ export default {
       }
     };
 
-    return { form, customers, loading, handleClose, handleSubmit };
+    return {
+      form,
+      customers,
+      loading,
+      currentDebt,
+      remainingDebt,
+      handleClose,
+      handleSubmit,
+    };
   },
 };
 </script>
