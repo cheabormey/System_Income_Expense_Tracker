@@ -7,9 +7,7 @@
       <ChevronLeftIcon class="w-6 h-6" />
       <span class="ml-1 text-sm">Back</span>
     </button>
-    <!-- <pre>
-      {{ tableData }}
-    </pre> -->
+
     <div
       class="bg-white rounded-lg shadow-sm p-6 my-4 border-2 border-dashed border-[#5B9717]"
     >
@@ -103,11 +101,21 @@
               {{ formatCurrency(item.amount) }}
             </td>
             <td class="px-6 py-4 text-center">
-              <span
-                class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold"
-              >
-                {{ item.invoiceIds?.length || 0 }} IDs
-              </span>
+              <div class="flex flex-col items-center justify-center gap-1">
+                <span
+                  class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold"
+                >
+                  {{ item.invoiceIds?.length || 0 }} Invoices
+                </span>
+                <!-- Cleanly formatted Invoice Dates extracted from IDs -->
+                <span
+                  v-if="item.invoiceIds?.length > 0"
+                  class="text-xs text-gray-500 max-w-[140px] truncate"
+                  :title="formatInvoiceDates(item.invoiceIds)"
+                >
+                  {{ formatInvoiceDates(item.invoiceIds) }}
+                </span>
+              </div>
             </td>
             <td class="px-6 py-4">
               <i
@@ -189,7 +197,8 @@ import DeleteConfirmation from "@/components/DeleteComfirmation.vue";
 import LotteryChiefBalanceForm from "@/components/Modal/LotteryChiefBalanceForm.vue";
 import LotteryChiefBalanceCard from "@/mobile/LotteryChiefBalanceCard.vue";
 import formatDate from "@/composable/formatDate";
-import { useAppToast } from "@/helper/toastHelper"; // Imported Toast Helper
+import { useAppToast } from "@/helper/toastHelper";
+import { getDocument } from "@/composable/getDocument"; // Imported for finding related Invoice Data
 
 export default {
   components: {
@@ -203,8 +212,10 @@ export default {
   setup() {
     const router = useRouter();
     const { showToast } = useAppToast();
+    const { getDocs } = getDocument(); // Allow data fetching
 
     const tableData = ref([]);
+    const invoices = ref([]); // Store invoices to format IDs into Dates
     const isLoading = ref(false);
     const searchQuery = ref("");
     const pageSize = ref(50);
@@ -222,9 +233,20 @@ export default {
       isMobileScreen.value = window.innerWidth < 768;
     };
 
+    // Fetch invoices to map Hash IDs back to clean Dates
+    const fetchInvoices = async () => {
+      try {
+        const res = await getDocs("Invoice");
+        if (res?.data) invoices.value = res.data;
+      } catch (err) {
+        console.error("Failed to fetch invoices:", err);
+      }
+    };
+
     onMounted(() => {
       handleCheckSize();
       window.addEventListener("resize", handleCheckSize);
+      fetchInvoices();
     });
 
     onBeforeUnmount(() =>
@@ -235,6 +257,23 @@ export default {
     const formatCurrency = (val) => {
       if (val === null || val === undefined) return "0 ៛";
       return val.toLocaleString("en-US", { maximumFractionDigits: 0 }) + " ៛";
+    };
+
+    // Dynamically formats an Array of raw Invoice IDs into a clean, comma-separated list of Dates
+    const formatInvoiceDates = (ids) => {
+      if (!ids || !ids.length) return "";
+
+      const dates = ids.map((id) => {
+        const invoice = invoices.value.find((inv) => inv._id === id);
+        if (invoice) {
+          return formatDate(invoice.playDate || invoice.createdAt);
+        }
+        // Fallback to the first few characters of the hash if date is missing
+        return id.substring(0, 5) + "...";
+      });
+
+      // Use Set to remove duplicate dates (if many plays happened on the exact same day)
+      return [...new Set(dates)].join(", ");
     };
 
     const openAddForm = () => {
@@ -292,6 +331,7 @@ export default {
       handleDeleteClose,
       formatDate,
       formatCurrency,
+      formatInvoiceDates,
     };
   },
 };

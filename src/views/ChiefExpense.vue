@@ -7,9 +7,7 @@
       <ChevronLeftIcon class="w-6 h-6" />
       <span class="ml-1 text-sm">Back</span>
     </button>
-    <!-- <pre>
-      {{ tableData }}
-    </pre> -->
+
     <div
       class="bg-white rounded-lg shadow-sm p-6 my-4 border-2 border-dashed border-[#5B9717]"
     >
@@ -105,8 +103,11 @@
             <td class="px-6 py-4 whitespace-nowrap font-bold text-red-600">
               {{ formatCurrency(item.amount) }}
             </td>
-            <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">
-              {{ item.description || "-" }}
+            <!-- Formatted Description Column -->
+            <td
+              class="px-6 py-4 text-sm text-gray-600 font-medium truncate max-w-xs"
+            >
+              {{ formatDescription(item.description) }}
             </td>
             <td class="px-6 py-4 text-center whitespace-nowrap">
               <button
@@ -180,8 +181,8 @@ import ChiefExpenseCard from "@/mobile/ChiefExpenseCard.vue";
 import formatDate from "@/composable/formatDate";
 import { useAppToast } from "@/helper/toastHelper";
 import { getDocument } from "@/composable/getDocument";
-import { useDocument } from "@/composable/useDocument"; // Added for balance restore
-import { useBranchStore } from "@/store/branchStore"; // Added for branch verification
+import { useDocument } from "@/composable/useDocument";
+import { useBranchStore } from "@/store/branchStore";
 
 export default {
   components: {
@@ -200,6 +201,7 @@ export default {
     const branchStore = useBranchStore();
 
     const customers = ref([]);
+    const invoices = ref([]); // Store invoices to map IDs to Dates
     const tableData = ref([]);
     const isLoading = ref(false);
     const searchQuery = ref("");
@@ -214,7 +216,7 @@ export default {
     const showDeleteModal = ref(false);
 
     const deleteId = ref(null);
-    const itemToDelete = ref(null); // Keep track of the full item to restore balance
+    const itemToDelete = ref(null);
 
     const handleCheckSize = () => {
       isMobileScreen.value = window.innerWidth < 768;
@@ -229,10 +231,20 @@ export default {
       }
     };
 
+    const fetchInvoices = async () => {
+      try {
+        const res = await getDocs("Invoice");
+        if (res?.data) invoices.value = res.data;
+      } catch (err) {
+        console.error("Failed to fetch invoices:", err);
+      }
+    };
+
     onMounted(() => {
       handleCheckSize();
       window.addEventListener("resize", handleCheckSize);
       fetchCustomers();
+      fetchInvoices();
     });
 
     onBeforeUnmount(() =>
@@ -248,6 +260,29 @@ export default {
     const formatCurrency = (val) => {
       if (val === null || val === undefined) return "0 ៛";
       return val.toLocaleString("en-US", { maximumFractionDigits: 0 }) + " ៛";
+    };
+
+    // Dynamically replaces the raw Invoice ID with the beautifully formatted Play Date
+    const formatDescription = (desc) => {
+      if (!desc) return "-";
+
+      // Look for the "Invoice ID: <hash>" pattern in the description
+      const match = desc.match(/Invoice ID:\s*([a-zA-Z0-9]+)/);
+
+      if (match && match[1]) {
+        const invoiceId = match[1];
+        const invoice = invoices.value.find((inv) => inv._id === invoiceId);
+
+        if (invoice) {
+          // Fallback to createdAt if playDate doesn't exist
+          const dateStr = formatDate(invoice.playDate || invoice.createdAt);
+          return desc.replace(
+            `Invoice ID: ${invoiceId}`,
+            `Invoice Date: ${dateStr}`,
+          );
+        }
+      }
+      return desc;
     };
 
     const openAddForm = () => {
@@ -274,23 +309,14 @@ export default {
 
     const confirmDelete = (item) => {
       deleteId.value = item._id;
-      itemToDelete.value = item; // Store item before deletion
+      itemToDelete.value = item;
       showDeleteModal.value = true;
     };
 
     const handleDeleteClose = async (status) => {
       showDeleteModal.value = false;
 
-      console.log("Delete modal closed with status:", status);
-
-      // Treat any non-false status as a successful deletion attempt.
-      // Adjust this if your DeleteConfirmation emits a specific string like 'cancel'
       if (status !== false && status !== "cancel") {
-        console.log(
-          "Proceeding with CLIENT-SIDE RESTORE BALANCE LOGIC. Item:",
-          itemToDelete.value,
-        );
-
         if (itemToDelete.value && itemToDelete.value.amount) {
           try {
             const balanceRes = await getDocs("LotteryChiefBalance");
@@ -300,8 +326,6 @@ export default {
               );
 
               if (activeBalance) {
-                console.log("Found active balance to restore:", activeBalance);
-                // Deleting an expense means the balance goes back UP
                 const newBalanceAmount =
                   activeBalance.amount + itemToDelete.value.amount;
 
@@ -312,14 +336,8 @@ export default {
                     updatedBy: branchStore.userId,
                   },
                 });
-                console.log(
-                  `Balance restored. Old: ${activeBalance.amount}, New: ${newBalanceAmount}`,
-                );
                 showToast("success", "Expense deleted and balance restored.");
               } else {
-                console.warn(
-                  "No active balance found for this branch to restore to.",
-                );
                 showToast(
                   "warn",
                   "Expense deleted, but no active balance found to restore.",
@@ -337,10 +355,8 @@ export default {
           showToast("success", "Expense deleted successfully.");
         }
 
-        // Reset the tracker
         itemToDelete.value = null;
       } else {
-        console.log("Deletion was cancelled.");
         itemToDelete.value = null;
       }
     };
@@ -367,6 +383,7 @@ export default {
       formatDate,
       formatCurrency,
       getCustomerName,
+      formatDescription,
     };
   },
 };

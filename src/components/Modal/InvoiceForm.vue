@@ -592,21 +592,8 @@ const saveInvoice = async () => {
       showToast("create", "Invoice created successfully.");
     }
 
-    // 2. SCHEMA RULE: isUnchanged creates a duplicate backup in InvoiceRecord
-    if (form.value.isUnchanged) {
-      await insertDoc("InvoiceRecord", {
-        fields: {
-          ...baseFields,
-          originalInvoiceId: savedInvoiceId,
-          invoiceId: savedInvoiceId,
-          createdAt: new Date(),
-          createdBy: branchStore.userId || "",
-        },
-      });
-    }
-
     // ==========================================
-    // 3. ROBUST REVERSAL & AUTOMATION LOGIC
+    // 2. ROBUST REVERSAL & AUTOMATION LOGIC
     // ==========================================
     const isNowLocked = form.value.isUnchanged;
     const wasLocked = props.isEditDoc && props.doc?.isUnchanged;
@@ -674,6 +661,7 @@ const saveInvoice = async () => {
           invoiceIds: updatedInvoiceIds,
           updatedAt: new Date(),
           updatedBy: branchStore.userId || "",
+          // Fallback to empty string to prevent validation errors if it's a positive gain with no expense
           lastChiefExpenseId:
             expenseId || activeBalance.lastChiefExpenseId || "",
         };
@@ -695,7 +683,8 @@ const saveInvoice = async () => {
       }
     }
 
-    // 4. SCHEMA RULE: deptAmount pushes to CustomerReimburstment
+    // 3. SCHEMA RULE: deptAmount pushes to CustomerReimburstment
+    // Same dynamic locking logic applied to Debts
     const newDeptAmount = isNowLocked ? Number(form.value.deptAmount) || 0 : 0;
     const oldDeptAmount = wasLocked ? Number(props.doc?.deptAmount) || 0 : 0;
     const deptDiff = newDeptAmount - oldDeptAmount;
