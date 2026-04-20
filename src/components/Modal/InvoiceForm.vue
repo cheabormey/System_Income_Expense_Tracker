@@ -59,13 +59,16 @@
 
       <!-- LOTTERY PLAYS -->
       <section>
-        <div class="flex justify-between items-center mb-3 border-b pb-2">
+        <!-- STICKY HEADER FOR EASY CLICKING -->
+        <div
+          class="sticky top-0 z-50 bg-white/95 backdrop-blur pt-2 pb-3 mb-4 border-b-2 border-gray-100 flex justify-between items-center shadow-sm px-2 -mx-2 rounded-t-md"
+        >
           <h3 class="text-lg font-bold text-gray-800">Lottery Plays</h3>
           <Button
             label="Add Play"
             icon="pi pi-plus"
             size="small"
-            class="p-button-success p-button-outlined"
+            class="p-button-success shadow-md"
             @click="addPlay"
           />
         </div>
@@ -350,7 +353,7 @@ const props = defineProps({
 
 const emit = defineEmits(["onClose", "refresh"]);
 
-const { insertDoc, updateDoc } = useDocument();
+const { insertDoc, updateDoc, deleteDoc } = useDocument();
 const { getDocs } = getDocument();
 const { showToast } = useAppToast();
 const branchStore = useBranchStore();
@@ -442,8 +445,8 @@ watch(
       });
     }
 
-    // Net total. If negative, it means the Chief lost money on this invoice
-    form.value.totalAmount = betTotal - winTotal;
+    // Net total. Math.trunc drops decimal digits (e.g. 201.5 becomes 201)
+    form.value.totalAmount = Math.trunc(betTotal - winTotal);
   },
   { deep: true },
 );
@@ -530,15 +533,12 @@ const saveInvoice = async () => {
   }
   loading.value = true;
 
-  // IMPORTANT: Ensure the Customer ID is always a pure string.
-  // During an edit, form.value.customerId can be a populated object from the backend.
-  // If we pass that object to an insert function, it triggers a 500 CastError!
+  // Extract pure String ID for customer to prevent 500 CastErrors
   const targetCustomerId =
     typeof form.value.customerId === "object"
       ? form.value.customerId?._id
       : form.value.customerId;
 
-  // 1. Ensure all schema defaults are present to prevent API 500 errors on inserts
   const baseFields = {
     branchId: branchStore.branchId || "",
     customerId: targetCustomerId,
@@ -581,7 +581,7 @@ const saveInvoice = async () => {
   try {
     let savedInvoiceId = null;
 
-    // 2. Save the main Invoice
+    // 1. Save main Invoice
     if (props.isEditDoc && props.doc?._id) {
       await updateDoc("Invoice", props.doc._id, payload);
       savedInvoiceId = props.doc._id;
@@ -592,101 +592,115 @@ const saveInvoice = async () => {
       showToast("create", "Invoice created successfully.");
     }
 
-    // 3. BALANCE & EXPENSE AUTOMATION LOGIC
-    // We calculate effective amounts. If "Lock" is NOT checked, effective weight is 0.
-    // If it is checked, the effective weight is the total amount.
-    // This makes sure checking/unchecking the box cleanly adds or reverses the financial records without duplication!
+    // 2. SCHEMA RULE: isUnchanged creates a duplicate backup in InvoiceRecord
     if (form.value.isUnchanged) {
-      const newNetTotal = Number(form.value.totalAmount) || 0;
-      const oldNetTotal =
-        props.isEditDoc && props.doc?.isUnchanged
-          ? Number(props.doc?.totalAmount) || 0
-          : 0;
-      const balanceDelta = newNetTotal - oldNetTotal;
+      await insertDoc("InvoiceRecord", {
+        fields: {
+          ...baseFields,
+          originalInvoiceId: savedInvoiceId,
+          invoiceId: savedInvoiceId,
+          createdAt: new Date(),
+          createdBy: branchStore.userId || "",
+        },
+      });
+    }
 
-      if (balanceDelta !== 0) {
-        let expenseId = null;
+    // ==========================================
+    // 3. ROBUST REVERSAL & AUTOMATION LOGIC
+    // ==========================================
+    const isNowLocked = form.value.isUnchanged;
+    const wasLocked = props.isEditDoc && props.doc?.isUnchanged;
 
-        // If the delta resulted in money leaving the Chief (balanceDelta is negative),
-        // it automatically generates a ChiefExpense record.
-        if (balanceDelta < 0) {
-          const expensePayload = {
-            fields: {
-              branchId: branchStore.branchId || "",
-              customerId: targetCustomerId,
-              paymentDate: form.value.playDate || new Date(),
-              amount: Math.abs(balanceDelta),
-              description: `Auto-generated expense from Invoice ${
-                props.isEditDoc ? "update" : "creation"
-              }. Invoice ID: ${savedInvoiceId}`,
-              createdAt: new Date(),
-              createdBy: branchStore.userId || "",
-            },
-          };
-          const expenseRes = await insertDoc("ChiefExpense", expensePayload);
-          expenseId =
-            expenseRes?._id || expenseRes?.data?._id || expenseRes?.id;
-        }
+    const newNetTotal = isNowLocked ? Number(form.value.totalAmount) || 0 : 0;
+    const oldNetTotal = wasLocked ? Number(props.doc?.totalAmount) || 0 : 0;
+    const balanceDelta = newNetTotal - oldNetTotal;
 
-        // Apply the net balance calculation delta to LotteryChiefBalance
-        const balanceRes = await getDocs("LotteryChiefBalance");
-        let activeBalance = balanceRes.data?.find(
-          (b) => b.branchId === branchStore.branchId && b.status === true,
+    let expenseId = null;
+
+    // STEP A: Clean up any existing ChiefExpense for this Invoice to prevent ghost expenses
+    if (props.isEditDoc) {
+      const expRes = await getDocs("ChiefExpense");
+      if (expRes?.data) {
+        const oldExpenses = expRes.data.filter(
+          (e) =>
+            e.description &&
+            e.description.includes(`Invoice ID: ${savedInvoiceId}`),
         );
-
-        if (activeBalance) {
-          let updatedInvoiceIds = Array.isArray(activeBalance.invoiceIds)
-            ? [...activeBalance.invoiceIds]
-            : [];
-          if (
-            !updatedInvoiceIds.includes(savedInvoiceId) &&
-            form.value.isUnchanged
-          ) {
-            updatedInvoiceIds.push(savedInvoiceId);
-          }
-
-          const updateFields = {
-            amount: Number(activeBalance.amount || 0) + balanceDelta,
-            invoiceIds: updatedInvoiceIds,
-            updatedAt: new Date(),
-            updatedBy: branchStore.userId || "",
-            // Fallback to empty string to prevent validation errors if it's a positive gain with no expense
-            lastChiefExpenseId:
-              expenseId || activeBalance.lastChiefExpenseId || "",
-          };
-
-          await updateDoc("LotteryChiefBalance", activeBalance._id, {
-            fields: updateFields,
-          });
-        } else {
-          // Create new active balance if none exists
-          const newFields = {
-            branchId: branchStore.branchId || "",
-            amount: balanceDelta,
-            invoiceIds: [savedInvoiceId],
-            status: true,
-            createdAt: new Date(),
-            createdBy: branchStore.userId || "",
-            lastChiefExpenseId: expenseId || "", // Must pass empty string to satisfy backend requirements
-          };
-
-          await insertDoc("LotteryChiefBalance", { fields: newFields });
+        for (const exp of oldExpenses) {
+          await deleteDoc("ChiefExpense", exp._id);
         }
       }
     }
 
+    // STEP B: If currently locked and negative, create a new accurate ChiefExpense
+    if (isNowLocked && newNetTotal < 0) {
+      const expensePayload = {
+        fields: {
+          branchId: branchStore.branchId || "",
+          customerId: targetCustomerId,
+          paymentDate: form.value.playDate || new Date(),
+          amount: Math.abs(newNetTotal),
+          description: `Auto-generated expense from Invoice. Invoice ID: ${savedInvoiceId}`,
+          createdAt: new Date(),
+          createdBy: branchStore.userId || "",
+        },
+      };
+      const expenseRes = await insertDoc("ChiefExpense", expensePayload);
+      expenseId = expenseRes?._id || expenseRes?.data?._id || expenseRes?.id;
+    }
+
+    // STEP C: Apply the Net Balance Difference to LotteryChiefBalance
+    if (balanceDelta !== 0 || (!isNowLocked && wasLocked)) {
+      const balanceRes = await getDocs("LotteryChiefBalance");
+      let activeBalance = balanceRes.data?.find(
+        (b) => b.branchId === branchStore.branchId && b.status === true,
+      );
+
+      if (activeBalance) {
+        let updatedInvoiceIds = Array.isArray(activeBalance.invoiceIds)
+          ? [...activeBalance.invoiceIds]
+          : [];
+
+        if (isNowLocked && !updatedInvoiceIds.includes(savedInvoiceId)) {
+          updatedInvoiceIds.push(savedInvoiceId);
+        } else if (!isNowLocked) {
+          updatedInvoiceIds = updatedInvoiceIds.filter(
+            (id) => id !== savedInvoiceId,
+          );
+        }
+
+        const updateFields = {
+          amount: Number(activeBalance.amount || 0) + balanceDelta,
+          invoiceIds: updatedInvoiceIds,
+          updatedAt: new Date(),
+          updatedBy: branchStore.userId || "",
+          lastChiefExpenseId:
+            expenseId || activeBalance.lastChiefExpenseId || "",
+        };
+
+        await updateDoc("LotteryChiefBalance", activeBalance._id, {
+          fields: updateFields,
+        });
+      } else if (isNowLocked) {
+        const newFields = {
+          branchId: branchStore.branchId || "",
+          amount: balanceDelta,
+          invoiceIds: [savedInvoiceId],
+          status: true,
+          createdAt: new Date(),
+          createdBy: branchStore.userId || "",
+          lastChiefExpenseId: expenseId || "",
+        };
+        await insertDoc("LotteryChiefBalance", { fields: newFields });
+      }
+    }
+
     // 4. SCHEMA RULE: deptAmount pushes to CustomerReimburstment
-    // Same dynamic locking logic applied to Debts
-    const newDeptAmount = form.value.isUnchanged
-      ? Number(form.value.deptAmount) || 0
-      : 0;
-    const oldDeptAmount =
-      props.isEditDoc && props.doc?.isUnchanged
-        ? Number(props.doc?.deptAmount) || 0
-        : 0;
+    const newDeptAmount = isNowLocked ? Number(form.value.deptAmount) || 0 : 0;
+    const oldDeptAmount = wasLocked ? Number(props.doc?.deptAmount) || 0 : 0;
     const deptDiff = newDeptAmount - oldDeptAmount;
 
-    if (deptDiff !== 0) {
+    if (deptDiff !== 0 || (!isNowLocked && wasLocked)) {
       const reimRes = await getDocs("CustomerReimburstment");
 
       let customerReim = reimRes.data?.find((r) => {
@@ -701,11 +715,12 @@ const saveInvoice = async () => {
         let updatedInvoiceIds = Array.isArray(customerReim.invoiceIds)
           ? [...customerReim.invoiceIds]
           : [];
-        if (
-          !updatedInvoiceIds.includes(savedInvoiceId) &&
-          form.value.isUnchanged
-        ) {
+        if (isNowLocked && !updatedInvoiceIds.includes(savedInvoiceId)) {
           updatedInvoiceIds.push(savedInvoiceId);
+        } else if (!isNowLocked) {
+          updatedInvoiceIds = updatedInvoiceIds.filter(
+            (id) => id !== savedInvoiceId,
+          );
         }
 
         await updateDoc("CustomerReimburstment", customerReim._id, {
@@ -716,14 +731,14 @@ const saveInvoice = async () => {
             updatedBy: branchStore.userId || "",
           },
         });
-      } else if (newDeptAmount > 0) {
+      } else if (newDeptAmount > 0 && isNowLocked) {
         await insertDoc("CustomerReimburstment", {
           fields: {
             branchId: branchStore.branchId || "",
             customerId: targetCustomerId,
             totalDebt: newDeptAmount,
             invoiceIds: [savedInvoiceId],
-            lastCustomerReturnMoneyId: "", // Fallback string to satisfy backend requirements
+            lastCustomerReturnMoneyId: "",
             status: true,
             createdAt: new Date(),
             createdBy: branchStore.userId || "",

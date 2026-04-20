@@ -165,6 +165,7 @@ import DeleteConfirmation from "@/components/DeleteComfirmation.vue";
 import { getDocument } from "@/composable/getDocument";
 import { useDocument } from "@/composable/useDocument";
 import { useAppToast } from "@/helper/toastHelper";
+import { useBranchStore } from "@/store/branchStore";
 
 export default {
   components: {
@@ -181,6 +182,7 @@ export default {
     const { getDocs } = getDocument();
     const { deleteDoc, updateDoc } = useDocument();
     const { showToast } = useAppToast();
+    const branchStore = useBranchStore();
 
     const customer = ref([]);
     const entries = ref([]);
@@ -192,6 +194,7 @@ export default {
     // Custom Delete Modal refs
     const showDeleteModal = ref(false);
     const deleteId = ref(null);
+    const itemToDelete = ref(null); // Track item to reverse financials
 
     const fetchLedgerData = async () => {
       const res = await getDocs("Invoice");
@@ -264,12 +267,91 @@ export default {
       }
     };
 
+    // --- IDEMPOTENT REVERSAL LOGIC FUNCTION ---
+    const reverseFinancials = async (entry) => {
+      const targetCustomerId =
+        typeof entry.customerId === "object"
+          ? entry.customerId._id
+          : entry.customerId;
+      const netTotal = Number(entry.totalAmount) || 0;
+      const deptAmount = Number(entry.deptAmount) || 0;
+
+      try {
+        // 1. Reverse LotteryChiefBalance (Only if this invoice ID is actively tracked in the balance)
+        const balanceRes = await getDocs("LotteryChiefBalance");
+        if (balanceRes?.data) {
+          let activeBalance = balanceRes.data.find(
+            (b) => b.invoiceIds && b.invoiceIds.includes(entry._id),
+          );
+
+          if (activeBalance) {
+            let updatedInvoiceIds = activeBalance.invoiceIds.filter(
+              (id) => id !== entry._id,
+            );
+
+            await updateDoc("LotteryChiefBalance", activeBalance._id, {
+              fields: {
+                amount: Number(activeBalance.amount || 0) - netTotal, // Reverse by subtracting the net total
+                invoiceIds: updatedInvoiceIds,
+                updatedAt: new Date(),
+                updatedBy: branchStore.userId || "",
+              },
+            });
+          }
+        }
+
+        // 2. Clean up ChiefExpense (if netTotal < 0, an expense was created for this payout)
+        if (netTotal < 0) {
+          const expRes = await getDocs("ChiefExpense");
+          if (expRes?.data) {
+            const oldExpenses = expRes.data.filter(
+              (e) =>
+                e.description &&
+                e.description.includes(`Invoice ID: ${entry._id}`),
+            );
+            for (const exp of oldExpenses) {
+              await deleteDoc("ChiefExpense", exp._id);
+            }
+          }
+        }
+
+        // 3. Reverse CustomerReimburstment (Only if this invoice ID is actively tracking debt)
+        const reimRes = await getDocs("CustomerReimburstment");
+        if (reimRes?.data) {
+          let customerReim = reimRes.data.find(
+            (r) => r.invoiceIds && r.invoiceIds.includes(entry._id),
+          );
+
+          if (customerReim) {
+            let updatedInvoiceIds = customerReim.invoiceIds.filter(
+              (id) => id !== entry._id,
+            );
+
+            await updateDoc("CustomerReimburstment", customerReim._id, {
+              fields: {
+                totalDebt: Number(customerReim.totalDebt || 0) - deptAmount, // Reverse by subtracting
+                invoiceIds: updatedInvoiceIds,
+                updatedAt: new Date(),
+                updatedBy: branchStore.userId || "",
+              },
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to reverse financials during delete:", err);
+      }
+    };
+
     // Trigger Custom Modal for Deletion
     const deleteEntry = (entry) => {
       if (entry.isUnchanged) {
-        showToast("error", "Cannot delete an unchanged invoice.");
+        showToast(
+          "error",
+          "Cannot delete a locked invoice. Please edit and unlock it first.",
+        );
         return;
       }
+      itemToDelete.value = entry;
       deleteId.value = entry._id;
       showDeleteModal.value = true;
     };
@@ -278,8 +360,18 @@ export default {
     const handleDeleteClose = async (status) => {
       showDeleteModal.value = false;
       if (status && status !== "cancel" && status !== false) {
-        showToast("delete", "Invoice deleted successfully.");
+        // If the item was successfully deleted, reverse its financial impact unconditionally
+        if (itemToDelete.value) {
+          await reverseFinancials(itemToDelete.value);
+        }
+        showToast(
+          "delete",
+          "Invoice deleted and financials reversed successfully.",
+        );
+        itemToDelete.value = null;
         await fetchLedgerData();
+      } else {
+        itemToDelete.value = null;
       }
     };
 
@@ -293,21 +385,23 @@ export default {
       if (deletableEntries.length === 0) {
         showToast(
           "error",
-          "Selected invoices are marked unchanged and cannot be deleted.",
+          "Selected invoices are locked and cannot be deleted. Please unlock them first.",
         );
         return;
       }
 
       if (
         confirm(
-          `Are you sure you want to delete ${deletableEntries.length} selected invoices?`,
+          `Are you sure you want to delete ${deletableEntries.length} unlocked invoices?`,
         )
       ) {
         try {
-          const deletePromises = deletableEntries.map((entry) =>
-            deleteDoc("Invoice", entry._id),
-          );
-          await Promise.all(deletePromises);
+          for (const entry of deletableEntries) {
+            // Delete the invoice document
+            await deleteDoc("Invoice", entry._id);
+            // Reverse financials for each deleted invoice unconditionally
+            await reverseFinancials(entry);
+          }
 
           selectedEntries.value = [];
           showToast("delete", "Selected invoices deleted successfully.");
