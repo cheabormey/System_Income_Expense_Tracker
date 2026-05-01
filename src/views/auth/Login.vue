@@ -9,16 +9,41 @@
 
       <div class="relative rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_0_50px_rgba(132,204,22,0.15)]">
 
-        <div class="px-8 pt-10 text-center">
-          <img src="@/assets/logo.png"
-               class="w-20 h-20 mx-auto mb-4 drop-shadow-xl"
-               alt="Logo" />
-          <h1 class="text-3xl font-extrabold text-white">Sign In</h1>
-          <p class="text-slate-400 text-sm mt-2">
-            Secure access to your account
-          </p>
-        </div>
+<!-- TOP LOGIN HEADER -->
+<div class="px-8 pt-10 pb-6 text-center relative overflow-hidden">
 
+  <!-- Glow Background -->
+  <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-72 h-72 bg-cyan-500/20 blur-[100px] rounded-full"></div>
+  <div class="absolute top-16 right-10 w-24 h-24 bg-blue-500/20 blur-3xl rounded-full"></div>
+  <div class="absolute top-10 left-10 w-20 h-20 bg-indigo-500/20 blur-3xl rounded-full"></div>
+
+  <!-- Logo Ring -->
+  <div class="relative z-10 flex justify-center">
+    <div
+      class="w-32 h-32 rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl flex items-center justify-center p-3 animate-float"
+    >
+      <img
+        src="@/assets/logo.jpeg"
+        class="w-full h-full object-cover rounded-2xl shadow-lg"
+        alt="Logo"
+      />
+    </div>
+  </div>
+
+
+
+  <!-- Title -->
+  <h1
+    class="relative z-10 mt-5 text-4xl font-black bg-gradient-to-r from-white via-cyan-200 to-blue-300 bg-clip-text text-transparent tracking-wide"
+  >
+    Sign In
+  </h1>
+
+  <!-- Subtitle -->
+  <p class="relative z-10 text-slate-400 text-sm mt-3 leading-relaxed max-w-[260px] mx-auto">
+    Securely login to continue managing your dashboard and business activities.
+  </p>
+</div>
         <form class="px-8 py-10 space-y-6" @submit.prevent="handleLogin">
 
           <div class="relative">

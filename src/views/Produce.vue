@@ -1,165 +1,209 @@
 <template>
-  <div class="mx-5 font-noto">
-    <button
-      @click="handleNavigateBack"
-      class="p-2 text-black hover:bg-blue-100 rounded-full transition mb-4 inline-flex items-center"
-      aria-label="Go back"
-    >
-      <ChevronLeftIcon class="w-6 h-6" />
-      <span class="ml-1 text-sm">Back</span>
-    </button>
+  <div
+    class="w-full min-h-screen p-4 sm:p-3 md:p-4 lg:p-6 xl:p-8 2xl:p-10 bg-white font-noto animate-fade-up animate-once animate-duration-[400ms]"
+  >
+    <!-- Top Header -->
+    <div class="relative flex items-center justify-between">
+      <div class="w-[95px] sm:w-[110px] flex justify-start">
+        <button
+          @click="handleNavigateBack"
+          class="group relative flex items-center gap-2 px-3 py-2 rounded-xl
+          bg-white/80 backdrop-blur-md border border-white/50
+          text-[#045B1B] text-xs sm:text-sm font-medium
+          shadow-sm hover:shadow-md hover:bg-white transition-all duration-300"
+        >
+          <div
+            class="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full
+            bg-[#5B9717]/20 group-hover:bg-[#5B9717]/40 border border-[#5B9717]
+            transition-all duration-300"
+          >
+            <i class="pi pi-arrow-left text-[10px] sm:text-xs"></i>
+          </div>
+          <span>Back</span>
+        </button>
+      </div>
 
-    <!-- Header -->
+      <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <span class="whitespace-nowrap text-xl md:text-2xl text-[#045B1B] font-bold">
+          Product List
+        </span>
+      </div>
+
+      <div class="w-[95px] sm:w-[110px]"></div>
+    </div>
+
+    <!-- Header Filter -->
     <div
-      class="bg-white rounded-lg shadow-sm p-6 my-4 border-2 border-dashed border-[#5B9717]"
+      class="space-y-5 py-6 rounded-lg bg-white shadow-sm p-4 md:p-6 my-4 border-2 border-dashed border-[#5B9717]"
     >
-      <h1 class="text-2xl md:text-3xl font-bold text-[#045B1B] mb-6">
-        Products
-      </h1>
-      <pre>
-        {{ productData }}
-      </pre>
-      <div
-        v-if="!isMobileScreen"
-        class="hidden md:flex flex-wrap items-end justify-between gap-4"
-      >
+      <!-- Desktop -->
+      <div class="hidden md:flex flex-wrap items-end justify-between gap-4">
+        <!-- Page rows -->
         <div class="flex flex-col">
           <span class="text-sm font-medium text-gray-700 mb-1">Page rows</span>
-          <select
+          <Select
             v-model="pageSize"
+            :options="optionPageSize"
+            optionLabel="value"
+            optionValue="value"
             :disabled="searchQuery !== ''"
-            class="w-28 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717] disabled:bg-gray-100"
-          >
-            <option v-for="size in optionPageSize" :key="size" :value="size">
-              {{ size }}
-            </option>
-          </select>
-        </div>
-
-        <div class="w-full md:w-96">
-          <span class="text-sm font-medium text-gray-700 mb-1 block"
-            >Search</span
-          >
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search products..."
-            class="w-full border rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5B9717]"
+            class="w-24"
+            size="small"
           />
         </div>
 
-        <button
-          class="btn-add-new flex items-center gap-2 bg-[#5B9717] text-white px-4 py-2 rounded-md hover:bg-[#4a7c13] transition"
-          @click="openAddForm"
-        >
-          <PlusIcon class="w-5 h-5" />
-          <span>Add New Product</span>
-        </button>
+        <!-- Search -->
+        <div class="flex-1 min-w-[220px] max-w-md">
+          <InputText
+            v-model="searchQuery"
+            placeholder="Search by product name..."
+            class="w-full"
+            size="small"
+          />
+        </div>
+
+        <!-- Add Button -->
+        <!-- <div class="flex justify-end w-full md:w-auto">
+          <button
+            @click="openAddForm"
+            class="btn-add-new flex items-center justify-center gap-2 w-full md:w-auto
+            bg-[#5B9717] hover:bg-[#4a7c13] text-white px-4 py-2 rounded-lg transition"
+          >
+            <PlusIcon class="w-4 h-4" />
+            <span>Add New Product</span>
+          </button>
+        </div> -->
+                  <div class="flex justify-end w-full md:w-auto">
+            <button  @click="openAddForm"
+              class="btn-add-new flex items-center justify-center gap-2 w-full md:w-auto">
+              <font-awesome-icon icon="fa-solid fa-plus-circle" />
+              <span>{{ $t('Add new') }}</span>
+            </button>
+          </div>
+      </div>
+
+      <!-- Mobile -->
+      <div class="block md:hidden space-y-3">
+        <InputText
+          v-model="searchQuery"
+          placeholder="Search by product name..."
+          class="w-full"
+          size="small"
+        />
+
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex flex-col">
+            <span class="text-xs font-medium text-gray-700 mb-1">Page rows</span>
+            <Select
+              v-model="pageSize"
+              :options="optionPageSize"
+              optionLabel="value"
+              optionValue="value"
+              :disabled="searchQuery !== ''"
+              class="w-20"
+              size="small"
+            />
+          </div>
+
+          <button
+            @click="openAddForm"
+            class="flex items-center gap-1 bg-[#5B9717] border rounded-lg text-white px-3 py-2 text-xs whitespace-nowrap"
+          >
+            <PlusIcon class="w-4 h-4" />
+            <span>Add New</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- ================= DESKTOP TABLE ================= -->
+    <!-- Desktop Table -->
     <div
       v-if="!isMobileScreen"
-      class="bg-white rounded-lg shadow overflow-x-auto border relative"
+      class="hidden md:block w-full max-h-[720px] overflow-auto scrollbar relative rounded-lg text-sm border"
     >
       <div
         v-if="isLoading"
-        class="absolute inset-0 bg-white/50 flex justify-center items-center z-10"
+        class="absolute inset-0 flex items-center justify-center z-10 bg-white/50 rounded-lg"
       >
-        <div
-          class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5B9717]"
-        ></div>
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#5B9717]"></div>
       </div>
 
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-[#045B1B] text-white">
-          <tr>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-            >
-              Product Name
-            </th>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-            >
-              Win Multiplier
-            </th>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-            >
-              Description
-            </th>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider"
-            >
-              Status
-            </th>
-            <th
-              class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider"
-            >
-              Actions
-            </th>
+      <table class="w-full" :class="{ 'opacity-50': isLoading }">
+        <thead class="font-bold bg-primary-light text-white sticky top-0 z-10">
+          <tr class="[&>*]:border [&>*]:px-2 [&>*]:py-3 [&>*]:text-center">
+            <th>N</th>
+            <th>Product Name</th>
+            <th>Win Multiplier</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Actions</th>  
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200">
+
+        <tbody v-if="productData.length">
           <tr
             v-for="(product, index) in productData"
             :key="product._id"
-            :class="index % 2 === 0 ? 'bg-white' : 'bg-[#f0fdf4]'"
+            :class="index % 2 === 0 ? 'bg-white' : 'bg-gray-100'"
+            class="[&>*]:border [&>*]:p-2"
           >
-            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-              {{ product.name }}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-              <span
-                class="px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-mono"
-              >
+            <td>{{ ((currentPage - 1) * pageSize) + index + 1 }}</td>
+
+            <td class="text-center font-medium">{{ product.name }}</td>
+
+            <td class="text-center">
+              <span class="px-3 py-1 rounded-md bg-blue-50 text-blue-700 font-mono">
                 x{{ product.winMultiplier || 0 }}
               </span>
             </td>
-            <td class="px-6 py-4 text-gray-600 italic text-sm">
+
+            <td class="text-center text-gray-600">
               {{ product.description || "-" }}
             </td>
 
-            <td class="px-3 py-2 whitespace-nowrap">
+            <td class="text-center">
               <button
-                class="inline-flex items-center justify-center w-6 h-6 rounded-md transition"
-                :class="product.status ? 'text-green-600' : 'text-red-600'"
                 @click="handleStatusToggle(product)"
+                class="px-4 py-1.5 flex mx-auto items-center gap-1.5 text-xs sm:text-sm font-semibold rounded-2xl backdrop-blur-sm shadow-sm transition-all duration-300 hover:scale-105"
+                :class="product.status ? 'text-green-600' : 'text-red-600'"
               >
                 <i
-                  class="pi"
-                  :class="
-                    product.status ? 'pi-check-circle' : 'pi-times-circle'
-                  "
-                />
+                  :class="product.status ? 'pi pi-check-circle' : 'pi pi-times-circle'"
+                ></i>
+                <span>{{ product.status ? "Active" : "Inactive" }}</span>
               </button>
             </td>
 
-            <td
-              class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium"
-            >
+            <td class="space-x-3 text-center">
               <button
-                class="p-2 text-[#045B1B] hover:bg-green-50 rounded-lg transition"
                 @click="openEditForm(product)"
+                class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-500/20 text-blue-500 hover:bg-blue-500 hover:text-white transition"
               >
-                <i class="pi pi-pencil" />
+                <i class="pi pi-pencil text-sm" />
               </button>
+
               <button
-                class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                 @click="confirmDelete(product)"
+                class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white transition"
               >
-                <i class="pi pi-trash" />
+                <i class="pi pi-trash text-sm" />
               </button>
+            </td>
+          </tr>
+        </tbody>
+
+        <tbody v-else>
+          <tr>
+            <td colspan="6" class="py-20 text-center text-gray-400 text-lg font-semibold">
+              No Products Found
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- ================= MOBILE CARD ================= -->
-    <div v-else class="grid gap-4">
+    <!-- Mobile Card -->
+    <div v-if="isMobileScreen" class="grid gap-4 md:hidden">
       <ProductCard
         :items="productData"
         :isLoading="isLoading"
@@ -169,18 +213,20 @@
       />
     </div>
 
+    <!-- Pagination -->
     <div class="mt-5">
       <Pagination
         :key="refreshKey"
         :currentPage="currentPage"
         :limitedPerPage="pageSize"
-        :searchQuery="searchQuery"
+        :searchQuery="searchText"
         collectionName="Product"
         @onEmitDataFromPagination="handleListenToPagination"
         @onEmitIsLoading="handleListenIsLoading"
       />
     </div>
 
+    <!-- Modals -->
     <ProductFormModal
       :visible="showFormModal"
       :is-edit-doc="isEditDoc"
@@ -197,7 +243,6 @@
       @onSuccess="handleDeleteSuccess"
     />
 
-    <!-- ✅ PrimeVue TOAST -->
     <Toast />
   </div>
 </template>
@@ -205,26 +250,28 @@
 <script>
 import { ref, onMounted, onBeforeUnmount, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ChevronLeftIcon, PlusIcon } from "@heroicons/vue/24/outline";
-import ProductFormModal from "../components/Modal/ProductForm.vue"; // Fixed Import
-import ProductCard from "@/mobile/ProductCard.vue"; // Fixed Import
+import { PlusIcon } from "@heroicons/vue/24/outline";
+import ProductFormModal from "../components/Modal/ProductForm.vue";
+import ProductCard from "@/mobile/ProductCard.vue";
 import Pagination from "@/components/Pagination.vue";
 import DeleteConfirmation from "@/components/DeleteComfirmation.vue";
 import Toast from "primevue/toast";
+import Select from "primevue/select";
+import InputText from "primevue/inputtext";
 import { useAppToast } from "@/helper/toastHelper";
 import { useDocument } from "@/composable/useDocument";
 
 export default {
   name: "ProductPage",
-
   components: {
-    ChevronLeftIcon,
     PlusIcon,
     ProductFormModal,
     ProductCard,
     Pagination,
     DeleteConfirmation,
     Toast,
+    Select,
+    InputText,
   },
 
   setup() {
@@ -232,18 +279,26 @@ export default {
     const { showToast } = useAppToast();
     const { updateDoc } = useDocument();
 
-    const productData = ref([]); // Fixed to productData
+    const productData = ref([]);
     const isLoading = ref(false);
     const isMobileScreen = ref(false);
+
     const searchQuery = ref("");
+    const searchText = ref("");
+
     const pageSize = ref(50);
-    const optionPageSize = [50, 100, 200];
+    const currentPage = ref(1);
+    const optionPageSize = ref(
+      [50, 100, 200, 500, 1000].map((v) => ({ value: v }))
+    );
+
     const showFormModal = ref(false);
     const isEditDoc = ref(false);
-    const selectedProduct = ref(null); // Fixed to selectedProduct
+    const selectedProduct = ref(null);
+
     const showDeleteModal = ref(false);
     const deleteId = ref(null);
-    const currentPage = ref(1);
+
     const refreshKey = ref(0);
 
     const handleCheckScreenSize = () => {
@@ -257,6 +312,15 @@ export default {
 
     onBeforeUnmount(() => {
       window.removeEventListener("resize", handleCheckScreenSize);
+    });
+
+    watch(searchQuery, (val) => {
+      searchText.value = val;
+      currentPage.value = 1;
+    });
+
+    watch(pageSize, () => {
+      currentPage.value = 1;
     });
 
     const triggerRefresh = () => {
@@ -288,17 +352,18 @@ export default {
         showToast("update", "Product status updated successfully.");
         triggerRefresh();
       } catch (error) {
-        console.error(error);
         showToast("error", "Failed to update product status.");
       }
     };
 
     const closeForm = (action) => {
       showFormModal.value = false;
+
       if (action === "add") {
         showToast("create");
         triggerRefresh();
       }
+
       if (action === "update") {
         showToast("update");
         triggerRefresh();
@@ -315,9 +380,7 @@ export default {
       triggerRefresh();
     };
 
-    const handleNavigateBack = () => {
-      router.push("/");
-    };
+    const handleNavigateBack = () => router.push("/");
 
     const handleListenToPagination = (items) => {
       productData.value = items || [];
@@ -328,23 +391,20 @@ export default {
       isLoading.value = status;
     };
 
-    watch(searchQuery, () => {
-      currentPage.value = 1;
-    });
-
     return {
       productData,
       isLoading,
       isMobileScreen,
       searchQuery,
+      searchText,
       pageSize,
+      currentPage,
       optionPageSize,
       showFormModal,
       isEditDoc,
       selectedProduct,
       showDeleteModal,
       deleteId,
-      currentPage,
       refreshKey,
       openAddForm,
       openEditForm,

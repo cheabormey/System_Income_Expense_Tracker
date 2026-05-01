@@ -1,84 +1,111 @@
 <template>
-  <div class="space-y-4 p-1">
+  <div class="space-y-4">
     <!-- CARD -->
     <div
       v-for="(item, index) in items"
       :key="item._id || index"
-      class="relative bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg active:scale-[0.98]"
+      class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 space-y-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
     >
-      <!-- STATUS BAR -->
-      <div
-        class="absolute left-0 top-0 w-1.5 h-full"
-        :class="item.status ? 'bg-green-500' : 'bg-rose-500'"
-      ></div>
+      <!-- Top Header -->
+      <div class="flex justify-between items-start gap-3">
+        <div class="flex items-start gap-3 min-w-0">
+          <!-- Product Icon -->
+          <div
+            class="w-12 h-12 rounded-full bg-[#045B1B]/10 flex items-center justify-center text-[#045B1B] shrink-0"
+          >
+            <Package class="w-6 h-6" />
+          </div>
 
-      <div class="p-4 pl-6">
-        <!-- TOP -->
-        <div class="flex justify-between items-start gap-3">
-          <!-- LEFT -->
-          <div class="flex-1 min-w-0">
-            <h3 class="text-lg font-bold text-green-800 truncate">
-              {{ item.name }}
-            </h3>
+          <!-- Product Info -->
+          <div class="min-w-0">
+            <h2 class="font-bold text-[#045B1B] text-base truncate">
+              {{ item.name || "N/A" }}
+            </h2>
 
-            <!-- MULTIPLIER BADGE -->
-            <div class="mt-1">
-              <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-md bg-blue-50 text-blue-700 border border-blue-100">
-                x{{ item.winMultiplier || 0 }}
-              </span>
-            </div>
-
-            <!-- DESCRIPTION -->
-            <p class="text-sm text-gray-500 mt-2 line-clamp-2">
-              {{ item.description || 'No description' }}
-            </p>
-
-            <!-- DATE -->
-            <p class="text-xs text-gray-400 mt-2">
+            <p class="text-xs text-gray-400 break-words">
               {{ formatDate(item.createdAt) }}
             </p>
           </div>
+        </div>
 
-          <!-- STATUS BUTTON -->
-          <button
-            @click.stop="$emit('onStatusChange', item)"
-            class="px-3 py-1 rounded-full text-xs font-bold border transition"
+        <!-- Status Badge -->
+        <div>
+          <span
+           
+            class="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition"
             :class="
               item.status
-                ? 'bg-green-50 text-green-700 border-green-200'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
+                ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                : 'bg-red-50 text-red-700 hover:bg-red-100'
             "
           >
-            {{ item.status ? 'Active' : 'Inactive' }}
-          </button>
+            <i
+              class="pi text-[10px]"
+              :class="item.status ? 'pi-check-circle' : 'pi-times-circle'"
+            ></i>
+            {{ item.status ? "Active" : "Inactive" }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Detail Box -->
+      <div class="border border-gray-200 rounded-xl overflow-hidden">
+        <div class="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
+          Product Details
         </div>
 
-        <!-- ACTIONS -->
-        <div class="mt-4 pt-3 border-t flex justify-between items-center">
-          <!-- ID -->
-          <span class="text-[10px] text-gray-400 font-mono">
-            ID: {{ item._id ? item._id.slice(-6) : 'N/A' }}
-          </span>
+        <div class="divide-y text-sm">
+          <div class="grid grid-cols-3 px-3 py-2 items-center">
+            <div class="font-medium text-gray-500">Name</div>
+            <div class="col-span-2 text-[#045B1B] truncate">
+              {{ item.name || "-" }}
+            </div>
+          </div>
 
-          <!-- BUTTONS -->
-          <div class="flex gap-2">
-            <!-- EDIT -->
-            <button
-              @click.stop="$emit('onEdit', item)"
-              class="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition"
-            >
-              ✏️
-            </button>
+          <div class="grid grid-cols-3 px-3 py-2 items-center">
+            <div class="font-medium text-gray-500">Multiplier</div>
+            <div class="col-span-2">
+              <span
+                class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-md bg-blue-50 text-blue-700 border border-blue-100"
+              >
+                x{{ item.winMultiplier || 0 }}
+              </span>
+            </div>
+          </div>
 
-            <!-- DELETE -->
-            <button
-              @click.stop="$emit('onDelete', item)"
-              class="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition"
-            >
-              🗑️
-            </button>
+          <div class="grid grid-cols-3 px-3 py-2 items-center">
+            <div class="font-medium text-gray-500">Description</div>
+            <div class="col-span-2 text-gray-600 break-words">
+              {{ item.description || "-" }}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 px-3 py-2 items-center">
+            <div class="font-medium text-gray-500">ID</div>
+            <div class="col-span-2 text-gray-400 font-mono text-xs">
+              {{ item._id ? item._id.slice(-8) : "N/A" }}
+            </div>
           </div>
         </div>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="flex justify-end gap-2 pt-1">
+        <button
+          @click="$emit('onEdit', item)"
+          class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-[#045B1B]/10 text-[#045B1B] hover:bg-[#045B1B]/20 transition"
+        >
+          <Edit class="w-4 h-4" />
+          <span class="text-xs font-medium">Edit</span>
+        </button>
+
+        <button
+          @click="$emit('onDelete', item)"
+          class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+        >
+          <Trash2 class="w-4 h-4" />
+          <span class="text-xs font-medium">Delete</span>
+        </button>
       </div>
     </div>
 
@@ -90,37 +117,37 @@
       <p class="text-gray-500 font-medium">No Products Found</p>
     </div>
 
-    <!-- LOADING SKELETON -->
+    <!-- LOADING -->
     <div v-if="isLoading" class="space-y-4">
       <div
         v-for="i in 3"
         :key="i"
-        class="h-32 bg-gray-100 animate-pulse rounded-2xl"
+        class="h-40 bg-gray-100 animate-pulse rounded-2xl"
       ></div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { defineProps, defineEmits } from "vue";
+<script>
 import formatDate from "@/composable/formatDate";
+import { Edit, Trash2, Package } from "lucide-vue-next";
 
-defineProps({
-  items: {
-    type: Array,
-    default: () => [],
+export default {
+  name: "ProductCard",
+  props: {
+    items: {
+      type: Array,
+      default: () => [],
+    },
+    isLoading: Boolean,
   },
-  isLoading: Boolean,
-});
-
-defineEmits(["onEdit", "onDelete", "onStatusChange"]);
+  components: {
+    Edit,
+    Trash2,
+    Package,
+  },
+  methods: {
+    formatDate,
+  },
+};
 </script>
-
-<style scoped>
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>

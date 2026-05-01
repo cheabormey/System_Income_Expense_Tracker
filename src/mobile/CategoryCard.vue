@@ -1,102 +1,114 @@
 <template>
-  <div class="space-y-4 p-1">
-    <div v-for="(item, index) in items" :key="item._id || index"
-      class="relative bg-white border border-gray-100 shadow-md rounded-2xl overflow-hidden group transition-all duration-300 hover:shadow-lg active:scale-[0.98]">
-      
-      <div class="absolute top-0 left-0 w-1.5 h-full" :class="item.status ? 'bg-[#5B9717]' : 'bg-rose-500'"></div>
+  <div
+    v-if="floor && floor._id"
+    class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 space-y-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+  >
 
-      <div class="p-4 pl-6">
-        <div class="flex justify-between items-start gap-2">
-          <div class="flex-1 min-w-0">
-            <h3 class="text-lg font-bold text-[#045B1B] truncate">
-              {{ item.name }}
-            </h3>
-            <p class="text-sm text-gray-500 mt-1 line-clamp-2">
-              {{ item.description || t('No description provided') }}
-            </p>
-            
-            <div class="mt-3 flex flex-wrap gap-3 text-xs text-gray-400">
-              <span class="flex items-center gap-1">
-                <i class="pi pi-user"></i>
-                {{ item.createdBy ? t('User') : t('Unknown') }}
-              </span>
-              <span class="flex items-center gap-1">
-                <i class="pi pi-calendar"></i>
-                {{ formatDate(item.createdAt) }}
-              </span>
-            </div>
-          </div>
-
-          <button @click.stop="$emit('onStatusChange', item)"
-            class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all border"
-            :class="item.status
-              ? 'bg-green-50 text-green-700 border-green-200'
-              : 'bg-rose-50 text-rose-700 border-rose-200'">
-            <i class="pi" :class="item.status ? 'pi-check-circle' : 'pi-times-circle'"></i>
-            {{ item.status ? t('Active') : t('Inactive') }}
-          </button>
+    <!-- Top Header -->
+    <div class="flex justify-between items-start gap-3">
+      <div class="flex items-start gap-3 min-w-0">
+        
+        <!-- Floor Icon -->
+        <div
+          class="w-12 h-12 rounded-full bg-[#045B1B]/10 flex items-center justify-center text-[#045B1B] shrink-0 font-bold text-lg"
+        >
+          <Ticket class="w-6 h-6" />
         </div>
 
-        <div class="mt-4 pt-3 border-t border-gray-50 flex justify-between items-center">
-          <span class="text-[10px] text-gray-400 font-mono">
-            {{ t('ID') }}: {{ item._id ? item._id.substring(item._id.length - 6) : 'N/A' }}
-          </span>
+        <!-- Floor Info -->
+        <div class="min-w-0">
+          <h2 class="font-bold text-primary-dark text-base truncate">
+            {{ floor.name || $t('N/A') }}
+          </h2>
 
-          <div class="flex gap-3">
-            <button @click.stop="$emit('onEdit', item)"
-              class="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors">
-              <i class="pi pi-pencil text-sm"></i>
-            </button>
+          <!-- <p class="text-sm text-gray-500 truncate">
+            {{ $t('Created By') }} : {{ getUserName(floor.createdBy) }}
+          </p> -->
 
-            <button @click.stop="$emit('onDelete', item)"
-              class="flex items-center justify-center w-9 h-9 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-colors">
-              <i class="pi pi-trash text-sm"></i>
-            </button>
+          <p class="text-xs text-gray-400 break-words">
+            {{ formatDate(floor.createdAt) }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Status Badge -->
+      <div>
+        <span
+          @click="$emit('onCardAction', { action: 'changeStatus', item: floor })"
+          class="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition"
+          :class="floor.status
+            ? 'bg-green-50 text-green-700 hover:bg-green-100'
+            : 'bg-red-50 text-red-700 hover:bg-red-100'"
+        >
+          <i
+            class="pi text-[10px]"
+            :class="floor.status ? 'pi-check-circle' : 'pi-times-circle'"
+          ></i>
+          {{ floor.status ? $t('Active') : $t('Inactive') }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Detail Box -->
+    <div class="border border-gray-200 rounded-xl overflow-hidden">
+      <div class="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-600">
+        {{ $t('Floor Details') }}
+      </div>
+
+      <div class="divide-y text-sm">
+        <div class="grid grid-cols-3 px-3 py-2 items-center">
+          <div class="font-medium text-gray-500">{{ $t('Name') }}</div>
+          <div class="col-span-2 text-primary-dark truncate">
+            {{ floor.name || '-' }}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 px-3 py-2 items-center">
+          <div class="font-medium text-gray-500">{{ $t('Description') }}</div>
+          <div class="col-span-2 text-gray-600 break-words">
+            {{ floor.description || '-' }}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 px-3 py-2 items-center">
+          <div class="font-medium text-gray-500">{{ $t('Created By') }}</div>
+          <div class="col-span-2 text-gray-600 truncate">
+            {{ getUserName(floor.createdBy) }}
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="!isLoading && items.length === 0"
-      class="text-center py-10 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-      <i class="pi pi-folder-open text-4xl text-gray-300"></i>
-      <p class="text-gray-500 mt-2 font-medium">{{ t('No Data Found') }}</p>
-    </div>
+    <!-- Footer Buttons -->
+    <div class="flex justify-end gap-2 pt-1">
+      <button
+        @click="$emit('onCardAction', { action: 'edit', item: floor })"
+        class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-[#045B1B]/10 text-[#045B1B] hover:bg-[#045B1B]/20 transition"
+      >
+        <Edit class="w-4 h-4" />
+        <span class="text-xs font-medium">{{ $t('Edit') }}</span>
+      </button>
 
-    <div v-if="isLoading" class="space-y-4">
-      <div v-for="i in 3" :key="i" class="h-32 bg-gray-100 animate-pulse rounded-2xl"></div>
+      <button
+        @click="$emit('onCardAction', { action: 'delete', item: floor })"
+        class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+      >
+        <Trash2 class="w-4 h-4" />
+        <span class="text-xs font-medium">{{ $t('Delete') }}</span>
+      </button>
     </div>
   </div>
 </template>
+<script>
+import { Edit, Trash2, Ticket } from 'lucide-vue-next';
 
-
-
-<script setup>
-import { defineProps, defineEmits } from 'vue';
-import formatDate from "@/composable/formatDate";
-import { useI18n } from 'vue-i18n';
-const { t } = useI18n();
-
-const props = defineProps({
-  items: {
-    type: Array,
-    required: true,
-    default: () => []
+export default {
+  name: 'CategoryCard',
+  props: {
+    floor: { type: Object, required: true },
+    getUserName: { type: Function, required: true },
+    formatDate: { type: Function, required: true },
   },
-  isLoading: {
-    type: Boolean,
-    default: false
-  }
-});
-
-const emit = defineEmits(['onEdit', 'onDelete', 'onStatusChange']);
+  components: { Edit, Trash2, Ticket },
+};
 </script>
-
-<style scoped>
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>

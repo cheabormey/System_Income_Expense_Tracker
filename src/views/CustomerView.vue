@@ -1,70 +1,115 @@
 <template>
-  <div class="mx-4 md:mx-5 font-noto">
-    <button @click="handleNavigateBack"
-      class="p-2 text-black hover:bg-blue-100 rounded-full transition mb-4 inline-flex items-center">
-      <ChevronLeftIcon class="w-6 h-6" />
-      <span class="ml-1 text-sm">Back</span>
-    </button>
+  <div
+    class="w-full min-h-screen p-4 sm:p-3 md:p-4 lg:p-6 xl:p-8 2xl:p-10 bg-white font-noto animate-fade-up animate-once animate-duration-[400ms] ">
+    <div class="font-NotoSerifKhmer"
+      v-animateonscroll="{ enterClass: 'animate-scalein', leaveClass: 'animate-fadeout' }">
 
-    <div class="bg-white rounded-lg shadow-sm p-5 md:p-6 my-4 border-2 border-dashed border-[#5B9717]">
-      <h1 class="text-2xl md:text-3xl font-bold text-[#045B1B] mb-6">
-        Customer Directory
-      </h1>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-        <div>
-          <span class="text-sm font-medium text-gray-700 mb-1 block">Rows</span>
-          <Select v-model="pageSize" :options="optionPageSize" class="w-28" />
+      <!-- Responsive Top Header -->
+      <div class="relative flex items-center justify-between mb-6">
+        <!-- Left: Back Button -->
+        <div class="w-[95px] sm:w-[110px] flex justify-start">
+          <button @click="handleNavigateBack"
+            class="group relative flex items-center gap-2 px-3 py-2 rounded-xl bg-white/80 backdrop-blur-md border border-white/50 text-primary-dark text-xs sm:text-sm font-medium shadow-sm hover:shadow-md hover:bg-white transition-all duration-300">
+            <div
+              class="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary-focus/20 group-hover:bg-primary-focus/50 border border-primary-focus transition-all duration-300">
+              <i class="pi pi-arrow-left text-[10px] sm:text-xs"></i>
+            </div>
+            <span class="tracking-wide hidden xs:block sm:block">Back</span>
+          </button>
         </div>
 
-        <div class="md:col-span-1">
-          <span class="text-sm font-medium text-gray-700 mb-1 block">Search</span>
-          <input v-model="searchQuery" type="text" placeholder="Search customer..."
-            class="w-full border rounded-md px-4 py-2 text-sm" />
+        <!-- Center: Title -->
+        <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <span class="whitespace-nowrap text-xl md:text-2xl text-primary-dark">Customer Directory</span>
         </div>
 
-        <button class="btn-add-new flex items-center justify-center gap-2 w-full md:w-auto" @click="openAddForm">
-          ➕ Add Customer
-        </button>
+        <!-- Right: Balance -->
+        <div class="w-[95px] sm:w-[110px]"></div>
       </div>
-    </div>
 
-    <div v-if="!isMobileScreen" class="bg-white rounded-lg shadow overflow-x-auto border">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <!-- Table Head -->
-          <thead class="bg-[#045B1B] text-white text-xs uppercase">
+      <!-- Header: Rows + Search + Add Button -->
+      <div class="space-y-5 py-6 rounded-lg bg-white shadow-sm p-4 md:p-6 my-4 border-2 border-dashed border-[#5B9717]">
+        <!-- Desktop + Tablet -->
+        <div class="hidden md:flex flex-wrap items-end justify-between gap-4">
+          <!-- Page Size -->
+          <div class="flex flex-col">
+            <span class="label mb-1">Page rows</span>
+            <Select v-model="pageSize" :options="optionPageSize" option-label="value" option-value="value"
+              :disabled="searchQuery !== ''" class="w-24" size="small" />
+          </div>
+
+          <!-- Search -->
+          <div class="flex-1 min-w-[200px] max-w-md">
+            <InputText v-model="searchQuery" placeholder="Search customer..." class="w-full" size="small" />
+          </div>
+
+          <!-- Add Button -->
+          <div class="flex justify-end w-full md:w-auto">
+            <button @click="handlePopOpenform"
+              class="btn-add-new flex items-center justify-center gap-2 w-full md:w-auto">
+              <font-awesome-icon icon="fa-solid fa-plus-circle" />
+              <span>Add Customer</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile -->
+        <div class="block md:hidden space-y-3">
+          <!-- Search -->
+          <InputText v-model="searchQuery" placeholder="Search customer..." class="w-full" size="small" />
+
+          <!-- Bottom row -->
+          <div class="flex items-center justify-between gap-3">
+            <!-- Page Size -->
+            <div class="flex flex-col">
+              <span class="label text-xs mb-1">Page rows</span>
+              <Select v-model="pageSize" :options="optionPageSize" option-label="value" option-value="value"
+                :disabled="searchQuery !== ''" class="w-20" size="small" />
+            </div>
+
+            <!-- Add Button -->
+            <button @click="handlePopOpenform"
+              class="flex items-center gap-1 bg-primary-bg border border-primary-border rounded-lg text-primary px-3 py-2 hover:bg-[#045B1B]/80 text-xs whitespace-nowrap">
+              <font-awesome-icon icon="fa-solid fa-plus-circle" />
+              <span>Add Customer</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop Table -->
+      <div v-if="!isMobileScreen"
+        class="hidden md:block w-full relative rounded-lg text-sm border">
+        <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center z-10 bg-white/70 rounded-lg">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+
+        <table class="w-full min-w-full divide-y divide-gray-200" :class="{ 'opacity-50': isLoading }">
+          <thead class="bg-[#045B1B] text-white text-xs uppercase sticky top-0 z-10">
             <tr>
               <th class="px-4 py-3 text-left">N</th>
               <th class="px-6 py-3 text-left">Name</th>
               <th class="px-6 py-3 text-left">Phone / Address</th>
               <th class="px-6 py-3 text-left">Permissions</th>
+               <th class="px-6 py-3 text-left">Description</th>
+<th class="px-6 py-3 text-left">Created By</th>
+<th class="px-6 py-3 text-left">Created At</th>
               <th class="px-6 py-3 text-center">Status</th>
               <th class="px-6 py-3 text-center">Actions</th>
             </tr>
           </thead>
-
-          <!-- Table Body -->
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="(customer, index) in customerData" :key="customer._id"
               class="hover:bg-gray-50 transition-colors">
-              <!-- Index -->
               <td class="px-4 py-3 text-sm font-medium">
                 {{ ((currentPage - 1) * pageSize) + index + 1 }}
               </td>
-
-              <!-- Name -->
-              <td class="px-6 py-3 font-semibold">
-                {{ customer.username }}
-              </td>
-
-              <!-- Phone & Address -->
+              <td class="px-6 py-3 font-semibold">{{ customer.username }}</td>
               <td class="px-6 py-3 text-sm">
                 <div>{{ customer.phoneNumber || '-' }}</div>
                 <div class="text-xs text-gray-400 break-words">{{ customer.address || '-' }}</div>
               </td>
-
-              <!-- Permissions (Nested Table) -->
+              <!-- Permissions nested table -->
               <td class="px-6 py-3">
                 <div class="overflow-x-auto">
                   <table class="w-full border rounded-md text-xs">
@@ -87,9 +132,10 @@
                   </table>
                 </div>
               </td>
-
-              <!-- Status Toggle -->
-              <td class="px-6 py-3 text-center">
+                            <td class="text-center">{{ customer.description || '-' }}</td>
+<td class="px-6 py-3 text-sm">{{ getUserName(customer.createdBy) }}</td>
+<td class="px-6 py-3 text-sm">{{ formatDateKhmer(customer.createdAt) }}</td>              
+<td class="px-6 py-3 text-center">
                 <button
                   class="inline-flex items-center justify-center w-6 h-6 rounded-md focus:outline-none focus:ring-2 focus:ring-[#82B215]"
                   :class="customer.status ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'"
@@ -97,16 +143,13 @@
                   <i class="pi" :class="customer.status ? 'pi-check-circle' : 'pi-times-circle'"></i>
                 </button>
               </td>
-
-              <!-- Actions -->
               <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium flex justify-center gap-2">
-                <button
-                  class="inline-flex items-center justify-center w-8 h-8 rounded-md text-[#045B1B] hover:bg-[#f9faf5]"
-                  @click="openEditForm(customer)">
+                <!-- <button @click="handlePopEdit(customer)"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-md text-[#045B1B] hover:bg-[#f9faf5]">
                   <i class="pi pi-pencil text-base" />
-                </button>
-                <button class="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-600 hover:bg-red-50"
-                  @click="confirmDelete(customer)">
+                </button> -->
+                <button @click="handlePopDelete(customer)"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-600 hover:bg-red-50">
                   <i class="pi pi-trash text-base" />
                 </button>
               </td>
@@ -114,85 +157,152 @@
 
             <!-- Empty State -->
             <tr v-if="customerData.length === 0 && !isLoading">
-              <td colspan="6" class="text-center py-10 text-gray-400 italic bg-gray-50 rounded-xl">
-                No customers found.
+              <td colspan="6" class="py-20 text-center">
+                <div class="flex flex-col items-center opacity-30">
+                  <p class="text-xl font-bold">No customers found</p>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
+      <!-- Mobile Cards -->
+      <!-- <div v-else class="grid gap-4 sm:grid-cols-2">
+        <CustomerCard v-for="customer in customerData" :key="customer._id"
+          :items="customer" :getProductName="getProductName"
+          @onEdit="handlePopEdit" @onDelete="handlePopDelete" />
+      </div> -->
+      <!-- Mobile Card -->
+<!-- Mobile Card -->
+<div v-if="isMobileScreen" class="grid gap-4 sm:grid-cols-2 md:hidden">
+  <CustomerCard 
+    v-for="customer in customerData.filter(c => c && c._id)" 
+    :key="customer._id" 
+    :items="customer"
+    :getProductName="getProductName"
+    :getUserName="getUserName"
+    :formatDateKhmer="formatDateKhmer"
+    @onEdit="handlePopEdit" 
+    @onDelete="handlePopDelete" />
+</div>
+
+      <!-- Pagination -->
+      <Pagination :currentPage="currentPage" :limitedPerPage="pageSize" :searchQuery="searchText"
+        @onEmitDataFromPagination="handleListenToPagination" @onEmitIsLoading="handleListenIsLoading"
+        @onEmitCurrentPageIsLastRecord="handleListenIsLastRecordOnPage" />
+
     </div>
 
-    <div v-else>
-      <CustomerCard :items="customerData" :isLoading="false" :getProductName="getProductName" @onEdit="openEditForm"
-        @onDelete="confirmDelete" />
-
-    </div>
-
-    <Pagination class="mt-5" :currentPage="currentPage" :searchQuery="searchText" :limitedPerPage="Number(pageSize)"
-      collectionName="Customer" @onEmitDataFromPagination="handlePaginationData" />
-
-    <CustomerFormModal :visible="showFormModal" :is-edit-doc="isEditDoc" :doc="selectedCustomer" @onClose="closeForm" />
-
-    <DeleteConfirmation :visible="showDeleteModal" :deleteId="deleteId" collectionName="Customer"
-      @onCloseDelete="handleCloseDelete" />
+    <!-- Dynamic Modals + Toast -->
+    <component v-if="currentComponent" :is="currentComponent" :visible="openForm" :doc="docData" :docDelete="docDelete"
+      :deleteId="deleteId" :collectionName="collectionName" :displayLabel="displayLabel" :elementName="elementName"
+      :isEditDoc="isEditDoc" :showToast="showToast" :isFailed="isFailed" :informMessage="informMessage"
+      :isLastRecordOnPage="isLastRecordOnPage" @onClose="handleListenEmitEvent"
+      @onCloseDelete="handleListenEmitEventDelete" @onToastSuccess="handleClearToast" />
   </div>
 </template>
-
 <script>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeftIcon } from '@heroicons/vue/24/outline'
+import { useI18n } from 'vue-i18n' // if you use i18n, otherwise remove
 import CustomerFormModal from '../components/Modal/CustomerForm.vue'
-import Pagination from '@/components/Pagination.vue'
 import DeleteConfirmation from '@/components/DeleteComfirmation.vue'
+import Pagination from '@/components/Pagination.vue'
+import ToastedVue from '@/components/ToastedVue.vue'
 import CustomerCard from '@/mobile/CustomerCard.vue'
+import StatusChangeCustomer from '@/components/StatusChange/StatusChangeCustomer.vue'
+import CustomerViewDetaill from '@/components/Modal/CustomerViewDetaill.vue'
+import formatDateKhmer from '@/composable/formatDate';
 import { getDocument } from '@/composable/getDocument'
+
 
 export default {
   components: {
-    ChevronLeftIcon,
     CustomerFormModal,
-    Pagination,
     DeleteConfirmation,
-    CustomerCard
+    Pagination,
+    ToastedVue,
+    CustomerCard,
+    StatusChangeCustomer,
+    CustomerViewDetaill
   },
-
   setup() {
     const router = useRouter()
-    const { getDocs } = getDocument()
+    const { t } = useI18n() // remove if not using i18n
+    // const { getDocs } = getDocument()
+    const { getDocs, createConditions } = getDocument()
 
+    const openForm = ref(false)
     const customerData = ref([])
-    const productMap = ref({})
-    const pageSize = ref(50)
     const currentPage = ref(1)
+    const pageSize = ref(50)
+    const isEditDoc = ref(false)
+    const docData = ref(null)
     const searchQuery = ref('')
     const searchText = ref('')
-    const optionPageSize = [50, 100, 200]
+    const isLoading = ref(false)
 
-    const showFormModal = ref(false)
-    const isEditDoc = ref(false)
-    const selectedCustomer = ref(null)
-    const showDeleteModal = ref(false)
+    const optionPageSize = ref([50, 100, 200, 500, 1000].map(v => ({ value: v })))
+
+    const showToast = ref(false)
+    const isFailed = ref(false)
+    const informMessage = ref('')
+    const isMobileScreen = ref(false);
+    // const isMobileScreen = ref(window.innerWidth < 768)
+    const collectionName = ref('Customer')
+    const displayLabel = ref('Customer')
+    const elementName = ref('')
     const deleteId = ref(null)
+    const docDelete = ref(null)
+    const isLastRecordOnPage = ref(false)
+    const currentComponent = ref('')
+    const userData = ref([])
 
-    const isMobileScreen = ref(window.innerWidth < 768)
 
-    // HANDLE RESIZE
-    const handleResize = () => {
+    const handlePopStatusChange = (customer) => {
+  resetState()
+  docData.value = customer
+  openForm.value = true
+  currentComponent.value = 'StatusChangeCustomer'
+}
+
+const handleListenEmitEventStatus = (status) => {
+  if (status === 'status') {
+    openForm.value = false
+    informMessage.value = 'Status Updated Successfully!'
+    showToast.value = true
+    currentComponent.value = 'ToastedVue'
+  } else {
+    resetState()
+  }
+}
+
+    const productMap = ref({})
+
+    // Resize handler
+    const handleCheckScreenSize = () => {
       isMobileScreen.value = window.innerWidth < 768
     }
 
-    onMounted(() => {
-      window.addEventListener('resize', handleResize)
-    })
+    // onMounted(async () => {
+    //   handleCheckScreenSize()
+    //   window.addEventListener('resize', handleCheckScreenSize)
+    //   await mapProducts()
+    // })
+    onMounted(async () => {
+  handleCheckScreenSize()
+  window.addEventListener('resize', handleCheckScreenSize)
+
+  await Promise.all([
+    mapProducts(),
+    fetchUserName()
+  ])
+})
 
     onBeforeUnmount(() => {
-      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('resize', handleCheckScreenSize)
     })
-
-
 
     const mapProducts = async () => {
       const res = await getDocs('Product')
@@ -203,65 +313,196 @@ export default {
       }
     }
 
-    onMounted(mapProducts)
+    const getProductName = (id) => productMap.value[id] || '-'
 
-    const getProductName = id => productMap.value[id] || '-'
+    // Watch search
+    watch(searchQuery, (val) => {
+      searchText.value = val
+      currentPage.value = 1
+    })
 
-    // PAGINATION HANDLER
-    const handlePaginationData = (items, page) => {
-      customerData.value = items
-      currentPage.value = page
-    }
-
-    // FORM METHODS
-    const openAddForm = () => {
+    const resetState = () => {
+      openForm.value = false
       isEditDoc.value = false
-      selectedCustomer.value = null
-      showFormModal.value = true
+      docData.value = null
+      docDelete.value = null
+      deleteId.value = null
+      elementName.value = ''
+      currentComponent.value = ''
+      showToast.value = false
+      isFailed.value = false
+      informMessage.value = ''
     }
 
-    const openEditForm = cust => {
+    const handleListenToPagination = (items) => {
+      customerData.value = items || []
+    }
+
+    const handleListenIsLoading = (status) => {
+      isLoading.value = status
+    }
+
+    const handleListenIsLastRecordOnPage = (status) => {
+      isLastRecordOnPage.value = status
+    }
+
+    const handlePopOpenform = () => {
+      resetState()
+      openForm.value = true
+      currentComponent.value = 'CustomerFormModal'
+    }
+
+    const handlePopEdit = (customer) => {
+      resetState()
       isEditDoc.value = true
-      selectedCustomer.value = cust
-      showFormModal.value = true
+      docData.value = customer
+      openForm.value = true
+      currentComponent.value = 'CustomerFormModal'
     }
 
-    const confirmDelete = cust => {
-      deleteId.value = cust._id
-      showDeleteModal.value = true
+    // const handlePopDelete = (customer) => {
+    //   resetState()
+    //   docDelete.value = customer
+    //   deleteId.value = customer._id
+    //   elementName.value = customer.username || ''
+    //   isLastRecordOnPage.value = customerData.value.length === 1 && currentPage.value > 1
+    //   openForm.value = true
+    //   currentComponent.value = 'DeleteConfirmation'
+    // }
+    const handlePopDelete = (customer) => {
+  resetState()
+  docDelete.value = customer
+  deleteId.value = customer._id
+  collectionName.value = 'Customer'
+  displayLabel.value = 'Customer'
+  elementName.value = customer.username || ''
+  isLastRecordOnPage.value = customerData.value.length === 1 && currentPage.value > 1
+  openForm.value = true
+  currentComponent.value = 'DeleteConfirmation'
+}
+
+    // // Status toggle (you can expand this)
+    // const handlePopStatusChange = (customer) => {
+    //   // Implement your status change logic here (probably call API + refresh)
+    //   console.log('Toggle status for', customer)
+    //   // Example: after success → show toast
+    // }
+
+    // const handleListenEmitEvent = (status) => {
+    //   if (status === 'add' || status === 'update') {
+    //     openForm.value = false
+    //     informMessage.value = status === 'add'
+    //       ? 'Added Successfully!'
+    //       : 'Updated Successfully!'
+    //     showToast.value = true
+    //     currentComponent.value = 'ToastedVue'
+    //   } else {
+    //     resetState()
+    //   }
+    // }
+    const handleListenEmitEvent = (status) => {
+  if (status === 'add' || status === 'update') {
+    openForm.value = false
+    informMessage.value = status === 'add'
+      ? 'Added Successfully!'
+      : 'Updated Successfully!'
+    showToast.value = true
+    currentComponent.value = 'ToastedVue'
+  }
+  else if (status === 'status') {
+    openForm.value = false
+    informMessage.value = 'Status Updated Successfully!'
+    showToast.value = true
+    currentComponent.value = 'ToastedVue'
+  }
+  else {
+    resetState()
+  }
+}
+
+    const handleListenEmitEventDelete = (status) => {
+      if (status === 'delete') {
+        openForm.value = false
+        informMessage.value = 'Deleted Successfully!'
+        showToast.value = true
+        currentComponent.value = 'ToastedVue'
+      } else {
+        resetState()
+      }
     }
 
-    watch(
-      searchQuery,
-      (newValue) => {
-        searchText.value = newValue;
-        currentPage.value = 1;
-      },
-      { immediate: true }
-    );
+    const handleClearToast = () => {
+      showToast.value = false
+      currentComponent.value = ''
+      // Optional: refresh pagination after delete
+    }
+        const getUserName = (id) => {
+      const user = userData.value.find((u) => u._id === id);
+      return user ? user.username || user.displayName || user.name : 'Unknown User';
+    };
+    const fetchUserName = async () => {
+  try {
+    const conditions = createConditions([
+      { field: 'status', operator: '==', value: true }
+    ])
 
+    const response = await getDocs('User', { dynamicConditions: conditions })
+    userData.value = response.data?.data || response.data || []
+  } catch (error) {
+    userData.value = []
+    console.log('Fetch user error:', error)
+  }
+}
+const handleCardAction = ({ action, item }) => {
+  if (action === 'edit') handlePopEdit(item)
+  if (action === 'delete') handlePopDelete(item)
+  if (action === 'changeStatus') handlePopStatusChange(item)
+}
+
+    const handleNavigateBack = () => router.push('/')
 
     return {
+      openForm,
       customerData,
-      pageSize,
       currentPage,
+      pageSize,
+      isEditDoc,
+      docData,
       searchQuery,
       searchText,
+      isLoading,
       optionPageSize,
-      showFormModal,
-      isEditDoc,
-      selectedCustomer,
-      showDeleteModal,
-      deleteId,
+      showToast,
+      isFailed,
+      informMessage,
       isMobileScreen,
-      handlePaginationData,
-      openAddForm,
-      openEditForm,
-      confirmDelete,
-      closeForm: () => (showFormModal.value = false),
-      handleCloseDelete: () => (showDeleteModal.value = false),
-      handleNavigateBack: () => router.push('/'),
-      getProductName
+      collectionName,
+      displayLabel,
+      elementName,
+      deleteId,
+      docDelete,
+      isLastRecordOnPage,
+      currentComponent,
+      getProductName,
+
+      handleListenToPagination,
+      handleListenIsLoading,
+      handleListenIsLastRecordOnPage,
+      handlePopOpenform,
+      handlePopEdit,
+      handlePopDelete,
+      handlePopStatusChange,
+      handleListenEmitEvent,
+      handleListenEmitEventDelete,
+      handleClearToast,
+      handleNavigateBack,
+      getUserName,
+      formatDateKhmer,
+      t,
+userData,
+formatDateKhmer,
+handleCardAction,
+getUserName,
     }
   }
 }

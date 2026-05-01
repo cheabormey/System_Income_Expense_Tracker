@@ -9,7 +9,16 @@ import Aura from "@primevue/themes/aura";
 import { definePreset } from "@primevue/themes";
 import "primeicons/primeicons.css";
 import ToastService from "primevue/toastservice";
+import Dialog from "primevue/dialog";
+import Message from "primevue/message";
 
+/* ✅ Font Awesome */
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+
+/* ✅ ADD ICON TO LIBRARY (IMPORTANT FIX) */
+library.add(faPlusCircle);
 /* Pinia */
 import { createPinia } from "pinia";
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
@@ -46,6 +55,21 @@ const MyPreset = definePreset(Aura, {
       900: "#045B1B", // DARK COLOR
       950: "#033f12",
     },
+    //     primary: {
+//       50: '#ECFDF5',
+//       100: '#D1FAE5',
+//       200: '#A7F3D0',
+//       300: '#6EE7B7',
+//       400: '#34D399',
+//       500: '#10B981', // main green
+//       600: '#059669',
+//       700: '#047857',
+//       800: '#065F46',
+//       900: '#064E3B',
+//       950: '#022C22'
+//     }
+
+    
     secondary: {
       50: "#f7fde9",
       100: "#ecf9c6",
@@ -87,6 +111,8 @@ app.component("InputNumber", InputNumber);
 app.component("Textarea", Textarea);
 app.component("Button", Button); // ✅ REGISTER BUTTON
 app.use(ToastService);
-
+app.component('font-awesome-icon', FontAwesomeIcon)
+app.component("Dialog", Dialog);
+app.component("Message", Message);
 /* Mount App */
 app.mount("#app");

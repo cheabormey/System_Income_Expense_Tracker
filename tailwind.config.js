@@ -5,20 +5,37 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Teal (Primary)
 
         primary: {
-          DEFAULT: "#1A2D69", // 500: Main color
-          dark: "#17285d", // 600: Darker shade
-          light: "#5876c7", // 400: Lighter shade
-          hover: "#5876c7", // 400: For hover effects
-          text: "#101d46", // 800: Dark text color
-          border: "#a3b2df", // 200: Light border
-          bg: "#e9ecf6", // 50: Background
-          focus: "#7d94d3", // 300: Focus ring
-          active: "#142352", // 700: Active state
-          disabled: "#c8d0eb", // 100: Disabled
-        },
+  DEFAULT: "#5B9717", // 500: Main brand green
+  dark: "#045B1B",    // 700: Dark green for active/button
+  light: "#82B215",   // 400: Light green for hover/highlight
+  hover: "#6EA61D",   // Hover state (between main and light)
+  text: "#033D12",    // Very dark readable text green
+  border: "#B8D98A",  // Soft border green
+  bg: "#F3F8EA",      // Very light green background
+  focus: "#A5CB63",   // Focus ring green
+  active: "#034814",  // Strong pressed state
+  disabled: "#DCE9C8" // Disabled pale green
+},
+
+
+        // plue (Primary)
+
+        // primary: {
+        //   DEFAULT: "#1A2D69", // 500: Main color
+        //   dark: "#17285d", // 600: Darker shade
+        //   light: "#5876c7", // 400: Lighter shade
+        //   hover: "#5876c7", // 400: For hover effects
+        //   text: "#101d46", // 800: Dark text color
+        //   border: "#a3b2df", // 200: Light border
+        //   bg: "#e9ecf6", // 50: Background
+        //   focus: "#7d94d3", // 300: Focus ring
+        //   active: "#142352", // 700: Active state
+        //   disabled: "#c8d0eb", // 100: Disabled
+        // },
+
+        
         //  purple
         // primary: {
         //   DEFAULT: "#8207DB", // main purple

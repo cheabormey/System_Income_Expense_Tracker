@@ -1,83 +1,95 @@
 <template>
-  <TransitionRoot as="template" :show="open">
-    <Dialog as="div" class="relative z-50" @close="handleClose">
-      <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0" enter-to="opacity-100"
-        leave="ease-in duration-200" leave-from="opacity-100" leave-to="opacity-0">
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" />
-      </TransitionChild>
-
-      <div class="fixed inset-0 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center px-4 py-6">
-          <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0 scale-95"
-            enter-to="opacity-100 scale-100" leave="ease-in duration-200" leave-from="opacity-100 scale-100"
-            leave-to="opacity-0 scale-95">
-            <DialogPanel class="w-full max-w-lg bg-white rounded-2xl shadow-xl border-2 border-[#82B215]">
-              <div class="flex items-center justify-between p-5 border-b">
-                <h3 class="text-xl font-semibold text-[#045B1B]">
-                  {{ isEditDoc ? 'Edit Product' : 'Add New Product' }}
-                </h3>
-                <svg @click="handleClose" class="close cursor-pointer w-6 h-6" xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                </svg>
-              </div>
-
-              <form class="p-6 space-y-5" @submit.prevent="handleSubmit">
-                <div>
-                  <label class="label font-medium block mb-1">Product Name <span class="text-red-500">*</span></label>
-                  <input v-model="name" class="input"
-                    :class="{ 'border-red-500 ring-1 ring-red-500': isNameInvalid || isNameDuplicate }"
-                    placeholder="Enter product name" />
-                  <p v-if="isNameInvalid" class="text-red-500 text-xs mt-1">Product name is required.</p>
-                  <p v-if="isNameDuplicate" class="text-red-500 text-xs mt-1">This name already exists.</p>
-                </div>
-
-                <div>
-                  <label class="label font-medium block mb-1">Win Multiplier</label>
-                  <input v-model.number="winMultiplier" type="number" step="0.01" class="input"
-                    placeholder="Enter multiplier (e.g. 1.5)" />
-                </div>
-
-                <div>
-                  <label class="label font-medium block mb-1">Description</label>
-                  <textarea v-model="description" class="input" rows="3"
-                    placeholder="Enter optional description"></textarea>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                  <ToggleSwitch v-model="status" inputId="statusSwitch" />
-                  <label class="label" for="statusSwitch">Active Status</label>
-                </div>
-
-                <div class="flex justify-end gap-4 pt-6 border-t">
-                  <button type="button" class="px-5 py-2 btn-cancel" @click="handleClose" :disabled="loading">
-                    Cancel
-                  </button>
-                  <button type="submit" class="px-5 py-2 btn-add" :disabled="loading || isNameDuplicate">
-                    <span v-if="loading" class="animate-spin mr-2">🌀</span>
-                    {{ isEditDoc ? 'Update' : 'Save' }}
-                  </button>
-                </div>
-              </form>
-            </DialogPanel>
-          </TransitionChild>
+  <Dialog
+    v-model:visible="open"
+    modal
+    :style="{ width: '50rem' }"
+    :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+    :closable="false"
+    class="rounded-2xl overflow-hidden"
+  >
+    <template #header>
+      <div class="flex justify-between items-center w-full text-primary border-b border-dashed border-primary-border pb-2">
+        <div class="flex items-center space-x-2">
+          <span class="text-lg font-semibold">{{ isEditDoc ? 'Edit Product' : 'Add New Product' }}</span>
         </div>
+
+          <button type="button" class="text-red-500 hover:text-red-300" @click="handleClose">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 
+                1.293a1 1 0 101.414 1.414L10 11.414l1.293 
+                1.293a1 1 0 001.414-1.414L11.414 
+                10l1.293-1.293a1 1 0 00-1.414-1.414L10 
+                8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+          </button>
       </div>
-    </Dialog>
-  </TransitionRoot>
+    </template>
+
+    <form class="p-6 space-y-5" @submit.prevent="handleSubmit">
+      <div>
+        <label class="font-medium block mb-1">Product Name <span class="text-red-500">*</span></label>
+        <input
+          v-model="name"
+          class="input"
+          :class="{ 'border-red-500 ring-1 ring-red-500': isNameInvalid || isNameDuplicate }"
+          placeholder="Enter product name"
+        />
+        <p v-if="isNameInvalid" class="text-red-500 text-xs mt-1">Product name is required.</p>
+        <p v-if="isNameDuplicate" class="text-red-500 text-xs mt-1">This name already exists.</p>
+      </div>
+
+      <div>
+        <label class="font-medium block mb-1">Win Multiplier</label>
+        <input
+          v-model.number="winMultiplier"
+          type="number"
+          step="0.01"
+          class="input"
+          placeholder="Enter multiplier"
+        />
+      </div>
+
+      <div>
+        <label class="font-medium block mb-1">Description</label>
+        <textarea
+          v-model="description"
+          class="input"
+          rows="3"
+          placeholder="Enter optional description"
+        ></textarea>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <ToggleSwitch v-model="status" inputId="statusSwitch" />
+        <label for="statusSwitch">Active Status</label>
+      </div>
+
+      <div class="flex justify-end gap-4 pt-6 border-t">
+        <button type="button" class="btn-cancel px-5 py-2" @click="handleClose">
+          Cancel
+        </button>
+
+        <button type="submit" class="btn-add px-5 py-2" :disabled="loading || isNameDuplicate">
+          {{ isEditDoc ? 'Update' : 'Save' }}
+        </button>
+      </div>
+    </form>
+  </Dialog>
 </template>
 
 <script>
 import { ref, watch } from 'vue';
-import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue';
+// import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue';
 import { useDocument } from '@/composable/useDocument';
 import { getDocument } from '@/composable/getDocument';
 import debounce from 'lodash/debounce';
 import { useBranchStore } from '@/store/branchStore';
+import Dialog from 'primevue/dialog';
+import ToggleSwitch from 'primevue/toggleswitch';
 
 export default {
   name: 'ProductFormModal',
-  components: { Dialog, DialogPanel, TransitionChild, TransitionRoot },
+  components: { Dialog, ToggleSwitch },
   props: {
     visible: { type: Boolean, default: false },
     isEditDoc: { type: Boolean, default: false },
