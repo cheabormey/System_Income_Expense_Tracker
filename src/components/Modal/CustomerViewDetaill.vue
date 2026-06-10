@@ -1,141 +1,205 @@
-<template>
-  <Dialog
-    :visible="visible"
-    @update:visible="emitClose"
-    modal
-    header="Customer Details"
-    :style="{ width: '650px' }"
-    class="rounded-xl overflow-hidden"
-  >
-    <div v-if="customer" class="space-y-6">
+    <template>
+      <Dialog 
+        :visible="visible" 
+        modal 
+        :style="{ width: '650px' }" 
+        :showHeader="false"
+        class="custom-detail-dialog overflow-hidden rounded-3xl border-0 shadow-2xl"
+        @update:visible="closeModal"
+      >
+        <div class="relative bg-gradient-to-br from-[#045B1B] via-[#2F7D19] to-[#5B9717] p-6 text-white">
+          <button 
+            @click="closeModal" 
+            class="absolute top-4 right-4 flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all duration-200 border border-white/10"
+          >
+            <i class="pi pi-times text-xs"></i>
+          </button>
 
-      <!-- BASIC INFO -->
-      <div class="border-b pb-4">
-        <h2 class="text-lg font-bold text-[#045B1B] mb-3">
-          Basic Information
-        </h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p class="text-xs text-gray-500">Customer Name</p>
-            <p class="font-semibold text-lg">{{ customer.username || '-' }}</p>
-          </div>
-
-          <div>
-            <p class="text-xs text-gray-500">Phone Number</p>
-            <p class="font-medium">{{ customer.phoneNumber || '-' }}</p>
-          </div>
-
-          <div class="md:col-span-2">
-            <p class="text-xs text-gray-500">Address</p>
-            <p class="text-gray-700">{{ customer.address || '-' }}</p>
-          </div>
-
-          <div>
-            <p class="text-xs text-gray-500">Status</p>
-            <span
-              class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium"
-              :class="customer.status ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
-            >
-              <i
-                class="pi"
-                :class="customer.status ? 'pi-check-circle' : 'pi-times-circle'"
-              />
-              {{ customer.status ? 'Active' : 'Inactive' }}
-            </span>
+          <div class="flex items-center gap-4 mt-2">
+            <div class="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-2xl font-bold tracking-wider uppercase shadow-inner">
+              {{ doc?.username ? doc.username.substring(0, 2) : 'CU' }}
+            </div>
+            
+            <div class="space-y-1">
+              <span class="text-xs uppercase tracking-widest text-green-200/80 font-semibold font-mono">Customer Profile</span>
+              <h2 class="text-2xl font-bold tracking-tight text-white">{{ doc?.username || '-' }}</h2>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- PERMISSIONS -->
-      <div>
-        <h2 class="text-lg font-bold text-[#045B1B] mb-3">
-          Permissions & Commission
-        </h2>
+        <div class="p-6 space-y-6 bg-slate-50/50">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-3">
+              <div class="p-2 rounded-xl bg-blue-50 text-blue-600 mt-0.5">
+                <i class="pi pi-phone text-sm"></i>
+              </div>
+              <div class="space-y-0.5">
+                <span class="text-xs font-semibold text-gray-400 block uppercase tracking-wider">Phone</span>
+                <span class="text-sm font-semibold text-gray-800 break-all">{{ doc?.phoneNumber || '-' }}</span>
+              </div>
+            </div>
 
-        <div v-if="customer.percentages && customer.percentages.length">
-          <table class="w-full border text-sm rounded-lg overflow-hidden">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="p-2 text-left">Type</th>
-                <th class="p-2 text-left">Product</th>
-                <th class="p-2 text-center">%</th>
-                <th class="p-2 text-center">Multiplier</th>
-              </tr>
-            </thead>
+            <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-3">
+              <div class="p-2 rounded-xl bg-orange-50 text-orange-600 mt-0.5">
+                <i class="pi pi-map-marker text-sm"></i>
+              </div>
+              <div class="space-y-0.5">
+                <span class="text-xs font-semibold text-gray-400 block uppercase tracking-wider">Address</span>
+                <span class="text-sm font-semibold text-gray-800 line-clamp-2 title-address" :title="doc?.address">
+                  {{ doc?.address || '-' }}
+                </span>
+              </div>
+            </div>
 
-            <tbody>
-              <tr
-                v-for="(item, index) in customer.percentages"
-                :key="index"
-                class="border-t hover:bg-gray-50"
-              >
-                <td class="p-2">{{ item.productType || '-' }}</td>
-                <td class="p-2">{{ getProductName(item.productId) }}</td>
-                <td class="p-2 text-center font-bold text-green-600">
-                  {{ item.percentages }}%
-                </td>
-                <td class="p-2 text-center font-mono text-blue-600">
-                  x{{ item.winMultiplier }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-3">
+              <div class="p-2 rounded-xl mt-0.5" :class="isDocActive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'">
+                <i class="pi text-sm" :class="isDocActive ? 'pi-check-circle' : 'pi-times-circle'"></i>
+              </div>
+              <div class="space-y-1">
+                <span class="text-xs font-semibold text-gray-400 block uppercase tracking-wider">Account Status</span>
+                <Tag 
+                  :severity="isDocActive ? 'success' : 'danger'" 
+                  :value="isDocActive ? 'Active' : 'Inactive'"
+                  class="px-2.5 py-0.5 text-xs font-bold rounded-lg tracking-wide uppercase border"
+                  :class="isDocActive ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-2">
+            <div class="flex items-center gap-2 text-gray-500 font-semibold text-sm">
+              <i class="pi pi-align-left text-xs"></i>
+              <span>Internal Remarks / Description</span>
+            </div>
+            <p class="text-sm text-gray-600 leading-relaxed bg-slate-50/80 p-3 rounded-xl border border-slate-100">
+              {{ doc?.description || 'No descriptive logs found for this customer entry.' }}
+            </p>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/40">
+              <div class="flex items-center gap-2 text-gray-700 font-bold text-sm">
+                <i class="pi pi-shield text-xs text-[#2F7D19]"></i>
+                <span>Product Permissions & Commission Rates</span>
+              </div>
+              <span v-if="doc?.percentages?.length" class="text-xs font-mono font-bold bg-gray-200/60 px-2 py-0.5 rounded-full text-gray-600">
+                {{ doc.percentages.length }} Rules
+              </span>
+            </div>
+
+            <div v-if="doc?.percentages?.length" class="overflow-x-auto">
+              <table class="w-full text-sm border-collapse">
+                <thead>
+                  <tr class="bg-slate-50/80 text-gray-500 text-xs font-bold uppercase tracking-wider border-b border-gray-100">
+                    <th class="p-3 text-left pl-5">Product Classification</th>
+                    <th class="p-3 text-left">Assigned Product</th>
+                    <th class="p-3 text-center">Split Rate</th>
+                    <th class="p-3 text-center pr-5">Win Weight</th>
+                  </tr>
+                </thead>
+
+                <tbody class="divide-y divide-gray-50 bg-white">
+                  <tr v-for="(item, index) in doc.percentages" :key="index" class="hover:bg-green-50/20 transition-colors duration-150">
+                    <td class="p-3 pl-5">
+                      <span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wide">
+                        {{ item.productType || 'N/A' }}
+                      </span>
+                    </td>
+
+                    <td class="p-3 font-semibold text-gray-800">
+                      {{ getProductName(item.productId) }}
+                    </td>
+
+                    <td class="p-3 text-center">
+                      <span class="inline-flex items-center justify-center font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full text-xs border border-emerald-100">
+                        {{ item.percentages }}%
+                      </span>
+                    </td>
+
+                    <td class="p-3 text-center pr-5 font-mono font-bold text-slate-700">
+                      <span class="text-gray-400 text-xs font-normal mr-0.5">×</span>{{ item.winMultiplier }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div v-else class="p-8 text-center flex flex-col items-center justify-center bg-gray-50/50">
+              <i class="pi pi-lock text-3xl text-gray-300 mb-2"></i>
+              <p class="text-gray-400 italic text-sm">
+                No active custom permissions assigned to this portfolio.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <Button 
+              label="Dismiss" 
+              icon="pi pi-times" 
+              class="p-button-secondary px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 shadow-sm border border-gray-200" 
+              @click="closeModal" 
+            />
+          </div>
+
         </div>
-
-        <div v-else class="text-center text-gray-400 py-6 italic">
-          No permission data found
-        </div>
-      </div>
-    </div>
-
-    <!-- FOOTER -->
-    <template #footer>
-      <div class="flex justify-end gap-2">
-        <button
-          @click="emitEdit"
-          class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
-        >
-          Edit
-        </button>
-
-        <button
-          @click="emitClose"
-          class="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
-        >
-          Close
-        </button>
-      </div>
+      </Dialog>
     </template>
-  </Dialog>
-</template>
 
-<script setup>
-import { defineProps, defineEmits } from 'vue'
+<script>
+import { computed } from 'vue';
+import Dialog from 'primevue/dialog';
+import Tag from 'primevue/tag';
+import Button from 'primevue/button';
 
-const props = defineProps({
-  visible: Boolean,
-  customer: Object,
-  getProductName: Function
-})
+export default {
+  components: {
+    Dialog,
+    Tag,
+    Button
+  },
+  props: {
+    visible: {
+      type: Boolean,
+      default: false
+    },
+    doc: {
+      type: Object,
+      default: () => ({})
+    },
+    getProductName: {
+      type: Function,
+      default: () => '-'
+    },
+  },
 
-const emit = defineEmits(['update:visible', 'onEdit'])
+  emits: ['onClose'],
 
-const emitClose = () => {
-  emit('update:visible', false)
-}
+  setup(props, { emit }) {
+    const isDocActive = computed(() => {
+      return props.doc?.status === true || props.doc?.status === 'active';
+    });
 
-const emitEdit = () => {
-  if (props.customer) {
-    emit('onEdit', props.customer)
+    const closeModal = () => {
+      emit('onClose', 'close');
+    }
+
+    return {
+      isDocActive,
+      closeModal
+    }
   }
-  emitClose()
 }
 </script>
 
 <style scoped>
-:deep(.p-dialog-header) {
-  background: #045b1b;
-  color: white;
+/* Scoped overrides to eliminate legacy square borders from parent Prime components */
+:deep(.p-dialog) {
+  border-radius: 1.5rem !important;
+  overflow: hidden !important;
+}
+:deep(.p-dialog-content) {
+  padding: 0 !important;
 }
 </style>

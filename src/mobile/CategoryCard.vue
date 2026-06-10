@@ -35,10 +35,10 @@
       <div>
         <span
           @click="$emit('onCardAction', { action: 'changeStatus', item: floor })"
-          class="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition"
+          class="cursor-pointer inline-flex items-center gap-1 px-1.5 py-1 rounded-full text-[11px] font-medium transition"
           :class="floor.status
-            ? 'bg-green-50 text-green-700 hover:bg-green-100'
-            : 'bg-red-50 text-red-700 hover:bg-red-100'"
+            ? 'bg-primary-bg text-primary '
+            : 'bg-red-50 text-red-700 '"
         >
           <i
             class="pi text-[10px]"

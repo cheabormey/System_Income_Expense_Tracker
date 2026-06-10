@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full min-h-screen p-4 sm:p-3 md:p-4 lg:p-6 xl:p-8 2xl:p-10 bg-white font-noto animate-fade-up animate-once animate-duration-[400ms]">
+  <div class="w-full bg min-h-screen p-4 sm:p-3 md:p-4 lg:p-6 xl:p-8 2xl:p-10 font-noto animate-fade-up animate-once animate-duration-[400ms]">
     <div class="font-NotoSerifKhmer"
       v-animateonscroll="{ enterClass: 'animate-scalein', leaveClass: 'animate-fadeout' }">
 
@@ -8,9 +8,7 @@
         <!-- Left : Back Button -->
         <div class="w-[95px] sm:w-[110px] flex justify-start">
           <button @click="handleNavigateBack" class="group relative flex items-center gap-2 px-3 py-2 rounded-xl
-             bg-white/80 backdrop-blur-md border border-white/50
-             text-primary-dark text-xs sm:text-sm font-medium
-             shadow-sm hover:shadow-md hover:bg-white
+             text-primary-dark text-xs sm:text-sm font-medium hover:shadow-md hover:bg-white
              transition-all duration-300">
             <!-- Icon -->
             <div class="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full
@@ -21,7 +19,7 @@
 
             <!-- Text -->
             <span class="tracking-wide hidden xs:block sm:block">
-              {{ $t('Back') }}
+              {{ $t('Back') }}  
             </span>
           </button>
         </div>
@@ -84,7 +82,7 @@
 
             <!-- Button -->
             <button @click="handlePopOpenform"
-              class="flex items-center gap-1 bg-primary-bg border border-primary-border rounded-lg text-primary px-3 py-2 hover:bg-[#045B1B]/80 text-xs whitespace-nowrap">
+              class="flex items-center gap-1 bg-[#5B9717] border border-primary-border rounded-lg text-white px-3 py-2 hover:bg-[#045B1B]/80 text-xs whitespace-nowrap">
               <font-awesome-icon icon="fa-solid fa-plus-circle" />
               <span>{{ $t('Add new') }}</span>
             </button>
@@ -101,7 +99,7 @@
         </div>
 
         <table class="w-full" :class="{ 'opacity-50': isLoading }">
-          <thead class="font-bold bg-primary-light text-white sticky top-0 z-10">
+          <thead class="font-bold bg-[#045B1B] text-white sticky top-0 z-10">
             <tr class="[&>*]:border [&>*]:px-2 [&>*]:py-3 [&>*]:text-center">
               <th class="px-4 py-3 text-left">N</th>
                 <th>{{ $t('Name') }}</th>

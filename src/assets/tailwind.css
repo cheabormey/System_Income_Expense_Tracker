@@ -43,8 +43,12 @@
   }
 
   .btn-add-new {
-    @apply bg-primary-bg border border-primary-border rounded-lg text-primary px-4 py-1.5 text-sm hover:bg-[#045B1B]/80 focus:outline-none;
+    @apply bg-gradient-to-l from-[#045B1B] via-[#2F7D19] to-[#5B9717]  rounded-lg text-white px-4 py-1.5 text-sm hover:bg-[#045B1B]/80 focus:outline-none;
   }
+    .add {
+    @apply bg-gradient-to-r from-[#045B1B] to-[#5B9717]  rounded-lg  text-white py-2 px-2 hover:bg-[#045B1B]/80 focus:outline-none;
+  }
+
 
   .btn {
     @apply px-4 py-2 text-sm border inline-block bg-[#056B20] rounded-lg text-white hover:bg-[#045B1B]/80 focus:outline-none;

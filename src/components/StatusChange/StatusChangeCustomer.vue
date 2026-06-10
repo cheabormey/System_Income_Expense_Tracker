@@ -103,6 +103,7 @@
   </Dialog>
 </template>
 
+<!-- StatusChangeCustomer.vue -->
 <script>
 import { ref } from 'vue'
 import { getDocument } from '@/composable/getDocument'
@@ -113,16 +114,15 @@ export default {
     doc: Object
   },
 
-  emits: ['onCloseStatus'],
+  // ✅ CHANGED HERE
+  emits: ['onClose'],
 
   setup(props, { emit }) {
     const loading = ref(false)
-
-    // ✅ FIXED HERE
     const { updateDocs } = getDocument()
 
     const handleClose = () => {
-      emit('onCloseStatus', false)
+      emit('onClose', false)        // ✅ consistent
     }
 
     const handleSubmit = async () => {
@@ -135,10 +135,10 @@ export default {
           status: newStatus
         })
 
-        emit('onCloseStatus', 'status')
+        emit('onClose', 'status')     // ✅ consistent
       } catch (err) {
-        console.log(err)
-        emit('onCloseStatus', false)
+        console.error(err)
+        emit('onClose', false)
       } finally {
         loading.value = false
       }
